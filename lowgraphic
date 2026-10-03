@@ -1,42 +1,65 @@
 -- ============================================================
--- Graphics Reduction GUI（スマホ対応・0〜10入力版）
+-- Graphics Reduction GUI（完全カスタマイズ版・初期OFF版）
 -- ============================================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-_G.G_LowGraphics = true
-_G.GraphicsLevel_Transparency = 0  -- 0-10
-_G.GraphicsLevel_Reflectance = 0   -- 0-10
-_G.GraphicsLevel_Material = false  -- Plastic 変更 ON/OFF
+_G.G_LowGraphics = false  -- ★ 初期状態 OFF
 
 -- ============================================================
--- Graphics 関数群
+-- Graphics 関数群（すべての数値を変数化）
 -- ============================================================
+
+-- 調整可能な全パラメータ（初期値すべて 0 / false）
+_G.GraphicsSettings = {
+	-- Part / Union 設定
+	Part_Transparency = 0,
+	Part_Reflectance = 0,
+	Part_Material = false,
+	Part_CanCollide = false,
+	
+	-- Decal / Texture 設定
+	Decal_Transparency = 0,
+	
+	-- ParticleEmitter 設定
+	Particle_LifetimeMin = 0,
+	Particle_LifetimeMax = 0,
+	Particle_Enabled = false,
+	
+	-- Explosion 設定
+	Explosion_BlastPressure = 1,
+	Explosion_BlastRadius = 1,
+	
+	-- Fire / Smoke / SpotLight 設定
+	Effects_Enabled = false,
+}
 
 local function fn17(arg)
+	local settings = _G.GraphicsSettings
+	
 	if arg:IsA("Part") or arg:IsA("Union") or arg:IsA("CornerWedgePart") or arg:IsA("TrussPart") then
-		if _G.GraphicsLevel_Material then
+		if settings.Part_Material then
 			arg.Material = Enum.Material.SmoothPlastic
 		end
-		if _G.GraphicsLevel_Reflectance > 0 then
-			arg.Reflectance = _G.GraphicsLevel_Reflectance / 10
-		end
-		if _G.GraphicsLevel_Transparency > 0 then
-			arg.Transparency = _G.GraphicsLevel_Transparency / 10
+		arg.Reflectance = settings.Part_Reflectance
+		arg.Transparency = settings.Part_Transparency
+		if settings.Part_CanCollide then
+			pcall(function()
+				arg.CanCollide = false
+			end)
 		end
 	elseif arg:IsA("Decal") or arg:IsA("Texture") then
-		if _G.GraphicsLevel_Transparency > 0 then
-			arg.Transparency = _G.GraphicsLevel_Transparency / 10
-		end
+		arg.Transparency = settings.Decal_Transparency
 	elseif arg:IsA("ParticleEmitter") or arg:IsA("Trail") then
-		arg.Lifetime = NumberRange.new(0)
+		arg.Lifetime = NumberRange.new(settings.Particle_LifetimeMin, settings.Particle_LifetimeMax)
+		arg.Enabled = settings.Particle_Enabled
 	elseif arg:IsA("Explosion") then
-		arg.BlastPressure = 1
-		arg.BlastRadius = 1
+		arg.BlastPressure = settings.Explosion_BlastPressure
+		arg.BlastRadius = settings.Explosion_BlastRadius
 	elseif arg:IsA("Fire") or arg:IsA("SpotLight") or arg:IsA("Smoke") then
-		arg.Enabled = false
+		arg.Enabled = settings.Effects_Enabled
 	end
 end
 
@@ -61,8 +84,8 @@ local function fn18()
 	end)
 end
 
-_G.G_LowGraphics = true
-fn18()
+-- ★ 初期状態では処理を実行しない
+-- fn18()
 
 game:GetService("Workspace").DescendantAdded:Connect(function(descendant)
 	if _G.G_LowGraphics then
@@ -83,8 +106,8 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 320, 0, 500)
-Main.Position = UDim2.new(0.02, 0, 0.3, 0)
+Main.Size = UDim2.new(0, 400, 0, 700)
+Main.Position = UDim2.new(0.02, 0, 0.15, 0)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
 Main.Active = true
@@ -97,9 +120,9 @@ UICorner.Parent = Main
 
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
-Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Title.Text = " Graphics Settings"
+Title.Text = " Graphics Settings (Full Control)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -140,7 +163,7 @@ end)
 local CloseButton = Instance.new("TextButton")
 CloseButton.Name = "Close"
 CloseButton.Size = UDim2.new(0, 28, 0, 28)
-CloseButton.Position = UDim2.new(1, -32, 0, 1)
+CloseButton.Position = UDim2.new(1, -32, 0, 3)
 CloseButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
 CloseButton.Text = "×"
 CloseButton.TextColor3 = Color3.new(1, 1, 1)
@@ -159,259 +182,227 @@ CloseButton.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================================
--- Transparency 設定
+-- スクロール用フレーム
 -- ============================================================
 
-local TransparencyLabel = Instance.new("TextLabel")
-TransparencyLabel.Size = UDim2.new(1, -16, 0, 20)
-TransparencyLabel.Position = UDim2.new(0, 8, 0, 38)
-TransparencyLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-TransparencyLabel.Text = "Transparency: " .. tostring(_G.GraphicsLevel_Transparency) .. "/10"
-TransparencyLabel.TextColor3 = Color3.new(1, 1, 1)
-TransparencyLabel.Font = Enum.Font.Gotham
-TransparencyLabel.TextSize = 11
-TransparencyLabel.Parent = Main
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, -16, 1, -50)
+ScrollFrame.Position = UDim2.new(0, 8, 0, 40)
+ScrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.ScrollBarThickness = 8
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1200)
+ScrollFrame.Parent = Main
 
-local TransparencyLabelCorner = Instance.new("UICorner")
-TransparencyLabelCorner.CornerRadius = UDim.new(0, 4)
-TransparencyLabelCorner.Parent = TransparencyLabel
+local ScrollCorner = Instance.new("UICorner")
+ScrollCorner.CornerRadius = UDim.new(0, 6)
+ScrollCorner.Parent = ScrollFrame
 
-local TransparencyToggle = Instance.new("TextButton")
-TransparencyToggle.Size = UDim2.new(0.3, 0, 0, 24)
-TransparencyToggle.Position = UDim2.new(0.65, 0, 0.38, 0)
-TransparencyToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-TransparencyToggle.Text = "OFF"
-TransparencyToggle.TextColor3 = Color3.new(1, 1, 1)
-TransparencyToggle.Font = Enum.Font.GothamBold
-TransparencyToggle.TextSize = 10
-TransparencyToggle.Parent = Main
+-- ============================================================
+-- 共通関数
+-- ============================================================
 
-local TransparencyToggleCorner = Instance.new("UICorner")
-TransparencyToggleCorner.CornerRadius = UDim.new(0, 4)
-TransparencyToggleCorner.Parent = TransparencyToggle
+local yPos = 0
 
-local TransparencyTextBox = Instance.new("TextBox")
-TransparencyTextBox.Size = UDim2.new(0.3, 0, 0, 24)
-TransparencyTextBox.Position = UDim2.new(0.04, 0, 0.38, 0)
-TransparencyTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TransparencyTextBox.TextColor3 = Color3.new(1, 1, 1)
-TransparencyTextBox.Font = Enum.Font.GothamBold
-TransparencyTextBox.TextSize = 11
-TransparencyTextBox.Text = "0"
-TransparencyTextBox.PlaceholderText = "0-10"
-TransparencyTextBox.Parent = Main
+local function createSetting(label, settingKey, defaultValue, min, max)
+	-- ラベル
+	local labelText = Instance.new("TextLabel")
+	labelText.Size = UDim2.new(1, -16, 0, 22)
+	labelText.Position = UDim2.new(0, 8, 0, yPos)
+	labelText.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	labelText.Text = label .. ": " .. tostring(_G.GraphicsSettings[settingKey])
+	labelText.TextColor3 = Color3.new(1, 1, 1)
+	labelText.Font = Enum.Font.Gotham
+	labelText.TextSize = 11
+	labelText.Parent = ScrollFrame
 
-local TransparencyTextBoxCorner = Instance.new("UICorner")
-TransparencyTextBoxCorner.CornerRadius = UDim.new(0, 4)
-TransparencyTextBoxCorner.Parent = TransparencyTextBox
+	local labelCorner = Instance.new("UICorner")
+	labelCorner.CornerRadius = UDim.new(0, 4)
+	labelCorner.Parent = labelText
 
-local function updateTransparency(val)
-	local value = math.clamp(tonumber(val) or 0, 0, 10)
-	_G.GraphicsLevel_Transparency = value
-	TransparencyTextBox.Text = tostring(value)
-	TransparencyLabel.Text = "Transparency: " .. tostring(value) .. "/10"
-	fn18()
+	yPos = yPos + 28
+
+	-- テキストボックス
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0.65, -8, 0, 28)
+	textBox.Position = UDim2.new(0, 8, 0, yPos)
+	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	textBox.TextColor3 = Color3.new(1, 1, 1)
+	textBox.Font = Enum.Font.GothamBold
+	textBox.TextSize = 12
+	textBox.Text = tostring(_G.GraphicsSettings[settingKey])
+	textBox.PlaceholderText = min .. "-" .. max
+	textBox.Parent = ScrollFrame
+
+	local textBoxCorner = Instance.new("UICorner")
+	textBoxCorner.CornerRadius = UDim.new(0, 4)
+	textBoxCorner.Parent = textBox
+
+	-- ON/OFF ボタン
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(0.3, 0, 0, 28)
+	toggleBtn.Position = UDim2.new(0.68, 0, 0, yPos)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	toggleBtn.Text = "OFF"
+	toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+	toggleBtn.Font = Enum.Font.GothamBold
+	toggleBtn.TextSize = 10
+	toggleBtn.Parent = ScrollFrame
+
+	local toggleCorner = Instance.new("UICorner")
+	toggleCorner.CornerRadius = UDim.new(0, 4)
+	toggleCorner.Parent = toggleBtn
+
+	yPos = yPos + 34
+
+	-- 更新処理
+	local function updateValue()
+		local val = tonumber(textBox.Text)
+		if val then
+			val = math.clamp(val, min, max)
+			_G.GraphicsSettings[settingKey] = val
+			textBox.Text = tostring(val)
+			labelText.Text = label .. ": " .. tostring(val)
+			fn18()
+		end
+	end
+
+	textBox.FocusLost:Connect(function()
+		updateValue()
+	end)
+
+	local enabled = false
+	toggleBtn.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		toggleBtn.Text = enabled and "ON" or "OFF"
+		toggleBtn.BackgroundColor3 = enabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+		textBox.Visible = enabled
+
+		if not enabled then
+			_G.GraphicsSettings[settingKey] = defaultValue
+			textBox.Text = tostring(defaultValue)
+			labelText.Text = label .. ": " .. tostring(defaultValue)
+			fn18()
+		end
+	end)
+
+	textBox.Visible = false
 end
 
-TransparencyTextBox.FocusLost:Connect(function()
-	updateTransparency(TransparencyTextBox.Text)
-end)
-
-local TransparencyEnabled = false
-TransparencyToggle.MouseButton1Click:Connect(function()
-	TransparencyEnabled = not TransparencyEnabled
-	TransparencyToggle.Text = TransparencyEnabled and "ON" or "OFF"
-	TransparencyToggle.BackgroundColor3 = TransparencyEnabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
-	TransparencyTextBox.Visible = TransparencyEnabled
-	
-	if TransparencyEnabled then
-		updateTransparency(5)
-	else
-		updateTransparency(0)
-	end
-end)
-
-TransparencyTextBox.Visible = false
-
 -- ============================================================
--- Reflectance 設定
+-- 全設定項目を作成
 -- ============================================================
 
-local ReflectanceLabel = Instance.new("TextLabel")
-ReflectanceLabel.Size = UDim2.new(1, -16, 0, 20)
-ReflectanceLabel.Position = UDim2.new(0, 8, 0, 75)
-ReflectanceLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ReflectanceLabel.Text = "Reflectance (光沢): " .. tostring(_G.GraphicsLevel_Reflectance) .. "/10"
-ReflectanceLabel.TextColor3 = Color3.new(1, 1, 1)
-ReflectanceLabel.Font = Enum.Font.Gotham
-ReflectanceLabel.TextSize = 11
-ReflectanceLabel.Parent = Main
+createSetting("Part Transparency", "Part_Transparency", 0, 0, 1)
+createSetting("Part Reflectance", "Part_Reflectance", 0, 0, 1)
+createSetting("Decal Transparency", "Decal_Transparency", 0, 0, 1)
+createSetting("Particle LifetimeMin", "Particle_LifetimeMin", 0, 0, 10)
+createSetting("Particle LifetimeMax", "Particle_LifetimeMax", 0, 0, 10)
+createSetting("Explosion BlastPressure", "Explosion_BlastPressure", 1, 0, 1000)
+createSetting("Explosion BlastRadius", "Explosion_BlastRadius", 1, 0, 200)
 
-local ReflectanceLabelCorner = Instance.new("UICorner")
-ReflectanceLabelCorner.CornerRadius = UDim.new(0, 4)
-ReflectanceLabelCorner.Parent = ReflectanceLabel
+-- ============================================================
+-- ON/OFF トグル
+-- ============================================================
 
-local ReflectanceToggle = Instance.new("TextButton")
-ReflectanceToggle.Size = UDim2.new(0.3, 0, 0, 24)
-ReflectanceToggle.Position = UDim2.new(0.65, 0, 0.75, 0)
-ReflectanceToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-ReflectanceToggle.Text = "OFF"
-ReflectanceToggle.TextColor3 = Color3.new(1, 1, 1)
-ReflectanceToggle.Font = Enum.Font.GothamBold
-ReflectanceToggle.TextSize = 10
-ReflectanceToggle.Parent = Main
+local toggleYPos = yPos + 10
 
-local ReflectanceToggleCorner = Instance.new("UICorner")
-ReflectanceToggleCorner.CornerRadius = UDim.new(0, 4)
-ReflectanceToggleCorner.Parent = ReflectanceToggle
+local function createToggleSetting(label, settingKey)
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(1, -16, 0, 32)
+	toggleBtn.Position = UDim2.new(0, 8, 0, toggleYPos)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	toggleBtn.Text = label .. ": OFF"
+	toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+	toggleBtn.Font = Enum.Font.GothamBold
+	toggleBtn.TextSize = 12
+	toggleBtn.Parent = ScrollFrame
 
-local ReflectanceTextBox = Instance.new("TextBox")
-ReflectanceTextBox.Size = UDim2.new(0.3, 0, 0, 24)
-ReflectanceTextBox.Position = UDim2.new(0.04, 0, 0.75, 0)
-ReflectanceTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ReflectanceTextBox.TextColor3 = Color3.new(1, 1, 1)
-ReflectanceTextBox.Font = Enum.Font.GothamBold
-ReflectanceTextBox.TextSize = 11
-ReflectanceTextBox.Text = "0"
-ReflectanceTextBox.PlaceholderText = "0-10"
-ReflectanceTextBox.Parent = Main
+	local toggleCorner = Instance.new("UICorner")
+	toggleCorner.CornerRadius = UDim.new(0, 6)
+	toggleCorner.Parent = toggleBtn
 
-local ReflectanceTextBoxCorner = Instance.new("UICorner")
-ReflectanceTextBoxCorner.CornerRadius = UDim.new(0, 4)
-ReflectanceTextBoxCorner.Parent = ReflectanceTextBox
+	toggleBtn.MouseButton1Click:Connect(function()
+		_G.GraphicsSettings[settingKey] = not _G.GraphicsSettings[settingKey]
+		toggleBtn.Text = label .. ": " .. (_G.GraphicsSettings[settingKey] and "ON" or "OFF")
+		toggleBtn.BackgroundColor3 = _G.GraphicsSettings[settingKey] and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+		fn18()
+		print("[Graphics] " .. label .. ": " .. (_G.GraphicsSettings[settingKey] and "有効" or "無効"))
+	end)
 
-local function updateReflectance(val)
-	local value = math.clamp(tonumber(val) or 0, 0, 10)
-	_G.GraphicsLevel_Reflectance = value
-	ReflectanceTextBox.Text = tostring(value)
-	ReflectanceLabel.Text = "Reflectance (光沢): " .. tostring(value) .. "/10"
-	fn18()
+	toggleYPos = toggleYPos + 38
 end
 
-ReflectanceTextBox.FocusLost:Connect(function()
-	updateReflectance(ReflectanceTextBox.Text)
-end)
-
-local ReflectanceEnabled = false
-ReflectanceToggle.MouseButton1Click:Connect(function()
-	ReflectanceEnabled = not ReflectanceEnabled
-	ReflectanceToggle.Text = ReflectanceEnabled and "ON" or "OFF"
-	ReflectanceToggle.BackgroundColor3 = ReflectanceEnabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
-	ReflectanceTextBox.Visible = ReflectanceEnabled
-	
-	if ReflectanceEnabled then
-		updateReflectance(0)
-	else
-		updateReflectance(0)
-	end
-end)
-
-ReflectanceTextBox.Visible = false
+createToggleSetting("Part Material", "Part_Material")
+createToggleSetting("Part CanCollide", "Part_CanCollide")
+createToggleSetting("Particle Enabled", "Particle_Enabled")
+createToggleSetting("Effects Enabled", "Effects_Enabled")
 
 -- ============================================================
--- Material (Plastic) 設定
+-- リセット＆実行ボタン
 -- ============================================================
 
-local MaterialLabel = Instance.new("TextLabel")
-MaterialLabel.Size = UDim2.new(1, -16, 0, 20)
-MaterialLabel.Position = UDim2.new(0, 8, 0, 112)
-MaterialLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-MaterialLabel.Text = "Material: Plastic 変更"
-MaterialLabel.TextColor3 = Color3.new(1, 1, 1)
-MaterialLabel.Font = Enum.Font.Gotham
-MaterialLabel.TextSize = 11
-MaterialLabel.Parent = Main
+local ButtonYPos = toggleYPos + 10
 
-local MaterialLabelCorner = Instance.new("UICorner")
-MaterialLabelCorner.CornerRadius = UDim.new(0, 4)
-MaterialLabelCorner.Parent = MaterialLabel
+local EnableAllButton = Instance.new("TextButton")
+EnableAllButton.Size = UDim2.new(1, -16, 0, 35)
+EnableAllButton.Position = UDim2.new(0, 8, 0, ButtonYPos)
+EnableAllButton.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
+EnableAllButton.Text = "全て実行 (ON)"
+EnableAllButton.TextColor3 = Color3.new(1, 1, 1)
+EnableAllButton.Font = Enum.Font.GothamBold
+EnableAllButton.TextSize = 13
+EnableAllButton.Parent = ScrollFrame
 
-local MaterialToggle = Instance.new("TextButton")
-MaterialToggle.Size = UDim2.new(1, -16, 0, 32)
-MaterialToggle.Position = UDim2.new(0, 8, 0, 138)
-MaterialToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-MaterialToggle.Text = "Plastic 変更: OFF"
-MaterialToggle.TextColor3 = Color3.new(1, 1, 1)
-MaterialToggle.Font = Enum.Font.GothamBold
-MaterialToggle.TextSize = 13
-MaterialToggle.Parent = Main
+local EnableCorner = Instance.new("UICorner")
+EnableCorner.CornerRadius = UDim.new(0, 6)
+EnableCorner.Parent = EnableAllButton
 
-local MaterialToggleCorner = Instance.new("UICorner")
-MaterialToggleCorner.CornerRadius = UDim.new(0, 6)
-MaterialToggleCorner.Parent = MaterialToggle
-
-MaterialToggle.MouseButton1Click:Connect(function()
-	_G.GraphicsLevel_Material = not _G.GraphicsLevel_Material
-	MaterialToggle.Text = _G.GraphicsLevel_Material and "Plastic 変更: ON" or "Plastic 変更: OFF"
-	MaterialToggle.BackgroundColor3 = _G.GraphicsLevel_Material and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+EnableAllButton.MouseButton1Click:Connect(function()
+	_G.G_LowGraphics = true
 	fn18()
-	print("[Graphics] Plastic 変更: " .. (_G.GraphicsLevel_Material and "有効" or "無効"))
+	print("[Graphics] 全設定を実行")
 end)
 
--- ============================================================
--- リセット
--- ============================================================
+ButtonYPos = ButtonYPos + 41
 
 local ResetButton = Instance.new("TextButton")
 ResetButton.Size = UDim2.new(1, -16, 0, 35)
-ResetButton.Position = UDim2.new(0, 8, 0, 180)
+ResetButton.Position = UDim2.new(0, 8, 0, ButtonYPos)
 ResetButton.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
 ResetButton.Text = "リセット (全部 OFF)"
 ResetButton.TextColor3 = Color3.new(1, 1, 1)
 ResetButton.Font = Enum.Font.GothamBold
 ResetButton.TextSize = 13
-ResetButton.Parent = Main
+ResetButton.Parent = ScrollFrame
 
 local ResetCorner = Instance.new("UICorner")
 ResetCorner.CornerRadius = UDim.new(0, 6)
 ResetCorner.Parent = ResetButton
 
 ResetButton.MouseButton1Click:Connect(function()
-	_G.GraphicsLevel_Transparency = 0
-	_G.GraphicsLevel_Reflectance = 0
-	_G.GraphicsLevel_Material = false
-	
-	TransparencyEnabled = false
-	ReflectanceEnabled = false
-	
-	TransparencyToggle.Text = "OFF"
-	TransparencyToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-	TransparencyTextBox.Visible = false
-	TransparencyTextBox.Text = "0"
-	TransparencyLabel.Text = "Transparency: 0/10"
-	
-	ReflectanceToggle.Text = "OFF"
-	ReflectanceToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-	ReflectanceTextBox.Visible = false
-	ReflectanceTextBox.Text = "0"
-	ReflectanceLabel.Text = "Reflectance (光沢): 0/10"
-	
-	MaterialToggle.Text = "Plastic 変更: OFF"
-	MaterialToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-	
-	fn18()
+	_G.GraphicsSettings = {
+		Part_Transparency = 0,
+		Part_Reflectance = 0,
+		Part_Material = false,
+		Part_CanCollide = false,
+		Decal_Transparency = 0,
+		Particle_LifetimeMin = 0,
+		Particle_LifetimeMax = 0,
+		Particle_Enabled = false,
+		Explosion_BlastPressure = 1,
+		Explosion_BlastRadius = 1,
+		Effects_Enabled = false,
+	}
+	_G.G_LowGraphics = false
 	print("[Graphics] リセット完了（すべて OFF）")
+	
+	-- GUI を再起動
+	ScreenGui:Destroy()
+	task.wait(0.5)
+	loadstring(game:HttpGet("スクリプトのURL"))()
 end)
 
--- ============================================================
--- Status
--- ============================================================
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, -16, 0, 90)
-StatusLabel.Position = UDim2.new(0, 8, 0, 225)
-StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-StatusLabel.Text = "【説明】\nTransparency: 0-10で透明度\nReflectance: 0-10で光沢削除\nMaterial: Plastic 化\n\n初期状態: すべて OFF"
-StatusLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 9
-StatusLabel.TextWrapped = true
-StatusLabel.Parent = Main
-
-local StatusCorner = Instance.new("UICorner")
-StatusCorner.CornerRadius = UDim.new(0, 4)
-StatusCorner.Parent = StatusLabel
-
-print("[Graphics] GUI 読み込み完了")
+print("[Graphics] GUI 起動完了")
 print("[Graphics] 初期状態: すべて OFF")
-print("[Graphics] 0〜10で調整可能")
+print("[Graphics] テキストで数値を入力して調整可能")
