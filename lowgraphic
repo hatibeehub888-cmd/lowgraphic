@@ -1,0 +1,408 @@
+-- ============================================================
+-- Graphics Reduction GUI（画質調整 + GUI + ドラッグ + 削除）
+-- ============================================================
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+_G.G_LowGraphics = true
+_G.G_RemoveLava = true
+_G.G_WalkOnWater = true
+
+-- ============================================================
+-- Graphics 関数群
+-- ============================================================
+
+local function fn17(arg)
+	if arg:IsA("Part") or arg:IsA("Union") or arg:IsA("CornerWedgePart") or arg:IsA("TrussPart") then
+		arg.Material = "Plastic"
+		arg.Reflectance = 0
+	elseif arg:IsA("Decal") or arg:IsA("Texture") then
+		arg.Transparency = 1
+	elseif arg:IsA("ParticleEmitter") or arg:IsA("Trail") then
+		arg.Lifetime = NumberRange.new(0)
+	elseif arg:IsA("Explosion") then
+		arg.BlastPressure = 1
+		arg.BlastRadius = 1
+	elseif arg:IsA("Fire") or arg:IsA("SpotLight") or arg:IsA("Smoke") then
+		arg.Enabled = false
+	end
+end
+
+local function fn18()
+	task.spawn(function()
+		pcall(function()
+			local n = 0
+
+			for _, descendant in pairs(game:GetDescendants()) do
+				fn17(descendant)
+				n += 1
+
+				if n % 500 == 0 then
+					task.wait()
+				end
+			end
+		end)
+
+		print("[Graphics] 画質低下処理完了")
+	end)
+end
+
+local function fn13(arg)
+	if not arg then
+		return
+	end
+	local name = arg.Name
+
+	if name == "Lava" then
+		pcall(function()
+			arg:Destroy()
+		end)
+	elseif name == "LavaParts" then
+		local parent = arg.Parent
+
+		if parent then
+			local name2 = parent.Name
+
+			if name2 == "CircleIsland" or name2 == "GhostShipInterior" then
+				local parent2 = parent.Parent
+
+				if parent2 and parent2.Name == "Map" then
+					pcall(function()
+						arg:Destroy()
+					end)
+				end
+			end
+		end
+	end
+end
+
+local function fn14()
+	task.spawn(function()
+		pcall(function()
+			local n = 0
+
+			for _, descendant in pairs(game:GetService("Workspace"):GetDescendants()) do
+				fn13(descendant)
+				n += 1
+
+				if n % 500 == 0 then
+					task.wait()
+				end
+			end
+
+			for _, descendant in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+				fn13(descendant)
+				n += 1
+
+				if n % 500 == 0 then
+					task.wait()
+				end
+			end
+		end)
+
+		print("[Graphics] 溶岩除去完了（再ログインで復元）")
+	end)
+end
+
+local flag3 = false
+
+local function fn15()
+	if flag3 then
+		return
+	end
+	flag3 = true
+
+	task.spawn(function()
+		while task.wait(0.2) do
+			if _G.G_WalkOnWater then
+				pcall(function()
+					local waterBasePlane = game:GetService("Workspace"):FindFirstChild("Map") and game.Workspace.Map:FindFirstChild("WaterBase-Plane")
+
+					if waterBasePlane then
+						waterBasePlane.Size = Vector3.new(1000, 112, 1000)
+					end
+				end)
+
+				continue
+			end
+
+			break
+		end
+
+		flag3 = false
+	end)
+end
+
+local function fn16()
+	_G.G_WalkOnWater = false
+
+	pcall(function()
+		local waterBasePlane = game:GetService("Workspace"):FindFirstChild("Map") and game.Workspace.Map:FindFirstChild("WaterBase-Plane")
+
+		if waterBasePlane then
+			waterBasePlane.Size = Vector3.new(1000, 80, 1000)
+		end
+	end)
+end
+
+-- 初期化
+fn18()
+fn14()
+fn15()
+
+game:GetService("Workspace").DescendantAdded:Connect(function(descendant)
+	if _G.G_LowGraphics then
+		pcall(fn17, descendant)
+	end
+end)
+
+-- ============================================================
+-- GUI
+-- ============================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GraphicsGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 300, 0, 400)
+Main.Position = UDim2.new(0.02, 0, 0.3, 0)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Visible = true
+Main.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Main
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Title.Text = " Graphics Settings"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Main
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 8)
+TitleCorner.Parent = Title
+
+-- ============================================================
+-- ドラッグ機能
+-- ============================================================
+
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+Title.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Main.Position
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+-- ============================================================
+-- 削除ボタン
+-- ============================================================
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "Close"
+CloseButton.Size = UDim2.new(0, 28, 0, 28)
+CloseButton.Position = UDim2.new(1, -32, 0, 1)
+CloseButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Color3.new(1, 1, 1)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 18
+CloseButton.BorderSizePixel = 0
+CloseButton.Parent = Title
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 4)
+CloseCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
+	print("[Graphics] GUI 削除されました")
+end)
+
+-- ============================================================
+-- トグルボタン群
+-- ============================================================
+
+-- ===== Low Graphics トグル =====
+local LowGraphicsToggle = Instance.new("TextButton")
+LowGraphicsToggle.Size = UDim2.new(1, -16, 0, 35)
+LowGraphicsToggle.Position = UDim2.new(0, 8, 0, 38)
+LowGraphicsToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
+LowGraphicsToggle.Text = "画質低下: ON"
+LowGraphicsToggle.TextColor3 = Color3.new(1, 1, 1)
+LowGraphicsToggle.Font = Enum.Font.GothamBold
+LowGraphicsToggle.TextSize = 14
+LowGraphicsToggle.Parent = Main
+
+local LowGraphicsCorner = Instance.new("UICorner")
+LowGraphicsCorner.CornerRadius = UDim.new(0, 6)
+LowGraphicsCorner.Parent = LowGraphicsToggle
+
+LowGraphicsToggle.MouseButton1Click:Connect(function()
+	_G.G_LowGraphics = not _G.G_LowGraphics
+	LowGraphicsToggle.Text = _G.G_LowGraphics and "画質低下: ON" or "画質低下: OFF"
+	LowGraphicsToggle.BackgroundColor3 = _G.G_LowGraphics and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	
+	if _G.G_LowGraphics then
+		fn18()
+		print("[Graphics] 画質低下: 有効")
+	else
+		print("[Graphics] 画質低下: 無効")
+	end
+end)
+
+-- ===== Remove Lava トグル =====
+local RemoveLavaToggle = Instance.new("TextButton")
+RemoveLavaToggle.Size = UDim2.new(1, -16, 0, 35)
+RemoveLavaToggle.Position = UDim2.new(0, 8, 0, 79)
+RemoveLavaToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
+RemoveLavaToggle.Text = "溶岩除去: ON（再ログインで復元）"
+RemoveLavaToggle.TextColor3 = Color3.new(1, 1, 1)
+RemoveLavaToggle.Font = Enum.Font.GothamBold
+RemoveLavaToggle.TextSize = 11
+RemoveLavaToggle.TextWrapped = true
+RemoveLavaToggle.Parent = Main
+
+local RemoveLavaCorner = Instance.new("UICorner")
+RemoveLavaCorner.CornerRadius = UDim.new(0, 6)
+RemoveLavaCorner.Parent = RemoveLavaToggle
+
+RemoveLavaToggle.MouseButton1Click:Connect(function()
+	_G.G_RemoveLava = not _G.G_RemoveLava
+	RemoveLavaToggle.Text = _G.G_RemoveLava and "溶岩除去: ON（再ログインで復元）" or "溶岩除去: OFF"
+	RemoveLavaToggle.BackgroundColor3 = _G.G_RemoveLava and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	
+	if _G.G_RemoveLava then
+		fn14()
+		print("[Graphics] 溶岩除去: 実行")
+	else
+		print("[Graphics] 溶岩除去: 無効")
+	end
+end)
+
+-- ===== Walk on Water トグル =====
+local WalkOnWaterToggle = Instance.new("TextButton")
+WalkOnWaterToggle.Size = UDim2.new(1, -16, 0, 35)
+WalkOnWaterToggle.Position = UDim2.new(0, 8, 0, 120)
+WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
+WalkOnWaterToggle.Text = "水上行走: ON"
+WalkOnWaterToggle.TextColor3 = Color3.new(1, 1, 1)
+WalkOnWaterToggle.Font = Enum.Font.GothamBold
+WalkOnWaterToggle.TextSize = 14
+WalkOnWaterToggle.Parent = Main
+
+local WalkOnWaterCorner = Instance.new("UICorner")
+WalkOnWaterCorner.CornerRadius = UDim.new(0, 6)
+WalkOnWaterCorner.Parent = WalkOnWaterToggle
+
+WalkOnWaterToggle.MouseButton1Click:Connect(function()
+	if _G.G_WalkOnWater then
+		fn16()
+		WalkOnWaterToggle.Text = "水上行走: OFF"
+		WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+		print("[Graphics] 水上行走: 無効")
+	else
+		_G.G_WalkOnWater = true
+		fn15()
+		WalkOnWaterToggle.Text = "水上行走: ON"
+		WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
+		print("[Graphics] 水上行走: 有効")
+	end
+end)
+
+-- ===== 説明セクション =====
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(1, -16, 0, 80)
+InfoLabel.Position = UDim2.new(0, 8, 0, 161)
+InfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+InfoLabel.Text = "【機能説明】\n画質低下: FPS 向上\n溶岩除去: 溶岩を非表示\n水上行走: 水上を歩行可能"
+InfoLabel.TextColor3 = Color3.new(1, 1, 1)
+InfoLabel.Font = Enum.Font.Gotham
+InfoLabel.TextSize = 10
+InfoLabel.TextWrapped = true
+InfoLabel.Parent = Main
+
+local InfoCorner = Instance.new("UICorner")
+InfoCorner.CornerRadius = UDim.new(0, 4)
+InfoCorner.Parent = InfoLabel
+
+-- ===== リセットボタン =====
+local ResetButton = Instance.new("TextButton")
+ResetButton.Size = UDim2.new(1, -16, 0, 32)
+ResetButton.Position = UDim2.new(0, 8, 0, 247)
+ResetButton.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+ResetButton.Text = "すべてリセット"
+ResetButton.TextColor3 = Color3.new(1, 1, 1)
+ResetButton.Font = Enum.Font.GothamBold
+ResetButton.TextSize = 13
+ResetButton.Parent = Main
+
+local ResetCorner = Instance.new("UICorner")
+ResetCorner.CornerRadius = UDim.new(0, 6)
+ResetCorner.Parent = ResetButton
+
+ResetButton.MouseButton1Click:Connect(function()
+	_G.G_LowGraphics = false
+	_G.G_RemoveLava = false
+	_G.G_WalkOnWater = false
+	
+	LowGraphicsToggle.Text = "画質低下: OFF"
+	LowGraphicsToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	RemoveLavaToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	WalkOnWaterToggle.Text = "水上行走: OFF"
+	WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	
+	fn16()
+	print("[Graphics] すべてリセット完了")
+end)
+
+-- ===== ステータスラベル =====
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -16, 0, 50)
+StatusLabel.Position = UDim2.new(0, 8, 0, 285)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+StatusLabel.Text = "状態: すべて有効\nFPS 最適化中..."
+StatusLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 10
+StatusLabel.TextWrapped = true
+StatusLabel.Parent = Main
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 4)
+StatusCorner.Parent = StatusLabel
+
+print("[Graphics] GUI 読み込み完了")
+print("[Graphics] 画質低下・溶岩除去・水上行走が有効です")
+print("[Graphics] タイトルをドラッグしてGUIを移動できます")
