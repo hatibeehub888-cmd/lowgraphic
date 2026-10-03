@@ -1,39 +1,31 @@
 -- ============================================================
--- Graphics Reduction GUI（完全カスタマイズ版・初期OFF版）
+-- Graphics Effects Control GUI（Fire/Smoke/SpotLight + Particle + Decal）
 -- ============================================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-_G.G_LowGraphics = false  -- ★ 初期状態 OFF
+_G.G_LowGraphics = false
 
 -- ============================================================
--- Graphics 関数群（すべての数値を変数化）
+-- Graphics 関数群
 -- ============================================================
 
--- 調整可能な全パラメータ（初期値すべて 0 / false）
 _G.GraphicsSettings = {
-	-- Part / Union 設定
-	Part_Transparency = 0,
-	Part_Reflectance = 0,
-	Part_Material = false,
-	Part_CanCollide = false,
+	-- Fire / Smoke / SpotLight 設定
+	Effects_Enabled = false,
+	Effects_OnOff = "OFF",
 	
-	-- Decal / Texture 設定
-	Decal_Transparency = 0,
-	
-	-- ParticleEmitter 設定
+	-- ParticleEmitter / Trail 設定
 	Particle_LifetimeMin = 0,
 	Particle_LifetimeMax = 0,
 	Particle_Enabled = false,
+	Particle_OnOff = "OFF",
 	
-	-- Explosion 設定
-	Explosion_BlastPressure = 1,
-	Explosion_BlastRadius = 1,
-	
-	-- Fire / Smoke / SpotLight 設定
-	Effects_Enabled = false,
+	-- Decal / Texture 設定
+	Decal_Transparency = 0,
+	Decal_OnOff = "OFF",
 }
 
 local function fn17(arg)
@@ -43,27 +35,13 @@ local function fn17(arg)
 	
 	local settings = _G.GraphicsSettings
 	
-	if arg:IsA("Part") or arg:IsA("Union") or arg:IsA("CornerWedgePart") or arg:IsA("TrussPart") then
-		if settings.Part_Material then
-			arg.Material = Enum.Material.SmoothPlastic
-		end
-		arg.Reflectance = settings.Part_Reflectance
-		arg.Transparency = settings.Part_Transparency
-		if settings.Part_CanCollide then
-			pcall(function()
-				arg.CanCollide = false
-			end)
-		end
-	elseif arg:IsA("Decal") or arg:IsA("Texture") then
-		arg.Transparency = settings.Decal_Transparency
+	if arg:IsA("Fire") or arg:IsA("SpotLight") or arg:IsA("Smoke") then
+		arg.Enabled = settings.Effects_Enabled
 	elseif arg:IsA("ParticleEmitter") or arg:IsA("Trail") then
 		arg.Lifetime = NumberRange.new(settings.Particle_LifetimeMin, settings.Particle_LifetimeMax)
 		arg.Enabled = settings.Particle_Enabled
-	elseif arg:IsA("Explosion") then
-		arg.BlastPressure = settings.Explosion_BlastPressure
-		arg.BlastRadius = settings.Explosion_BlastRadius
-	elseif arg:IsA("Fire") or arg:IsA("SpotLight") or arg:IsA("Smoke") then
-		arg.Enabled = settings.Effects_Enabled
+	elseif arg:IsA("Decal") or arg:IsA("Texture") then
+		arg.Transparency = settings.Decal_Transparency
 	end
 end
 
@@ -88,9 +66,6 @@ local function fn18()
 	end)
 end
 
--- ★ 初期状態では処理を実行しない
--- fn18()
-
 game:GetService("Workspace").DescendantAdded:Connect(function(descendant)
 	if _G.G_LowGraphics then
 		pcall(function()
@@ -110,8 +85,8 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 400, 0, 700)  -- ★ GUI の大きさ（幅, 高さ）
-Main.Position = UDim2.new(0.02, 0, 0.15, 0)
+Main.Size = UDim2.new(0, 380, 0, 500)
+Main.Position = UDim2.new(0.02, 0, 0.2, 0)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
 Main.Active = true
@@ -126,7 +101,7 @@ local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Title.Text = " Graphics Settings (Full Control)"
+Title.Text = " Effects Control"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -136,57 +111,6 @@ Title.Parent = Main
 local TitleCorner = Instance.new("UICorner")
 TitleCorner.CornerRadius = UDim.new(0, 8)
 TitleCorner.Parent = Title
-
--- GUI サイズ変更ボタン
-local SizeLabel = Instance.new("TextLabel")
-SizeLabel.Size = UDim2.new(0.3, 0, 0, 35)
-SizeLabel.Position = UDim2.new(0.55, 0, 0, 0)
-SizeLabel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-SizeLabel.Text = "Size"
-SizeLabel.TextColor3 = Color3.new(1, 1, 1)
-SizeLabel.Font = Enum.Font.GothamBold
-SizeLabel.TextSize = 10
-SizeLabel.Parent = Title
-
-local SizeTextBox = Instance.new("TextBox")
-SizeTextBox.Size = UDim2.new(0.12, 0, 0, 16)
-SizeTextBox.Position = UDim2.new(0.55, 0, 0.05, 0)
-SizeTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SizeTextBox.TextColor3 = Color3.new(1, 1, 1)
-SizeTextBox.Font = Enum.Font.Gotham
-SizeTextBox.TextSize = 9
-SizeTextBox.Text = "400"
-SizeTextBox.PlaceholderText = "幅"
-SizeTextBox.Parent = Title
-
-local SizeTextBox2 = Instance.new("TextBox")
-SizeTextBox2.Size = UDim2.new(0.12, 0, 0, 16)
-SizeTextBox2.Position = UDim2.new(0.68, 0, 0.05, 0)
-SizeTextBox2.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SizeTextBox2.TextColor3 = Color3.new(1, 1, 1)
-SizeTextBox2.Font = Enum.Font.Gotham
-SizeTextBox2.TextSize = 9
-SizeTextBox2.Text = "700"
-SizeTextBox2.PlaceholderText = "高さ"
-SizeTextBox2.Parent = Title
-
-local function updateGUISize()
-	local w = tonumber(SizeTextBox.Text) or 400
-	local h = tonumber(SizeTextBox2.Text) or 700
-	w = math.clamp(w, 300, 1000)
-	h = math.clamp(h, 300, 1200)
-	Main.Size = UDim2.new(0, w, 0, h)
-	SizeTextBox.Text = tostring(w)
-	SizeTextBox2.Text = tostring(h)
-end
-
-SizeTextBox.FocusLost:Connect(function()
-	updateGUISize()
-end)
-
-SizeTextBox2.FocusLost:Connect(function()
-	updateGUISize()
-end)
 
 -- ドラッグ
 local dragging = false
@@ -246,7 +170,7 @@ ScrollFrame.Position = UDim2.new(0, 8, 0, 40)
 ScrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 ScrollFrame.BorderSizePixel = 0
 ScrollFrame.ScrollBarThickness = 8
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1500)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1000)
 ScrollFrame.Parent = Main
 
 local ScrollCorner = Instance.new("UICorner")
@@ -254,198 +178,288 @@ ScrollCorner.CornerRadius = UDim.new(0, 6)
 ScrollCorner.Parent = ScrollFrame
 
 -- ============================================================
--- UI 要素を保存する
+-- セクション 1: Fire / Smoke / SpotLight
 -- ============================================================
 
-local UIElements = {}
+local EffectsLabel = Instance.new("TextLabel")
+EffectsLabel.Size = UDim2.new(1, -16, 0, 28)
+EffectsLabel.Position = UDim2.new(0, 8, 0, 10)
+EffectsLabel.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
+EffectsLabel.Text = "🔥 Fire / Smoke / SpotLight"
+EffectsLabel.TextColor3 = Color3.new(1, 1, 1)
+EffectsLabel.Font = Enum.Font.GothamBold
+EffectsLabel.TextSize = 12
+EffectsLabel.Parent = ScrollFrame
 
--- ============================================================
--- 共通関数
--- ============================================================
+local EffectsLabelCorner = Instance.new("UICorner")
+EffectsLabelCorner.CornerRadius = UDim.new(0, 4)
+EffectsLabelCorner.Parent = EffectsLabel
 
-local yPos = 0
+local EffectsOnOffLabel = Instance.new("TextLabel")
+EffectsOnOffLabel.Size = UDim2.new(1, -16, 0, 20)
+EffectsOnOffLabel.Position = UDim2.new(0, 8, 0, 50)
+EffectsOnOffLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+EffectsOnOffLabel.Text = "Status: OFF"
+EffectsOnOffLabel.TextColor3 = Color3.new(1, 1, 1)
+EffectsOnOffLabel.Font = Enum.Font.Gotham
+EffectsOnOffLabel.TextSize = 11
+EffectsOnOffLabel.Parent = ScrollFrame
 
-local function createSetting(label, settingKey, defaultValue, min, max)
-	-- ラベル
-	local labelText = Instance.new("TextLabel")
-	labelText.Size = UDim2.new(1, -16, 0, 22)
-	labelText.Position = UDim2.new(0, 8, 0, yPos)
-	labelText.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	labelText.Text = label .. ": " .. tostring(_G.GraphicsSettings[settingKey])
-	labelText.TextColor3 = Color3.new(1, 1, 1)
-	labelText.Font = Enum.Font.Gotham
-	labelText.TextSize = 11
-	labelText.Parent = ScrollFrame
+local EffectsOnOffLabelCorner = Instance.new("UICorner")
+EffectsOnOffLabelCorner.CornerRadius = UDim.new(0, 4)
+EffectsOnOffLabelCorner.Parent = EffectsOnOffLabel
 
-	local labelCorner = Instance.new("UICorner")
-	labelCorner.CornerRadius = UDim.new(0, 4)
-	labelCorner.Parent = labelText
+local EffectsToggle = Instance.new("TextButton")
+EffectsToggle.Size = UDim2.new(1, -16, 0, 35)
+EffectsToggle.Position = UDim2.new(0, 8, 0, 75)
+EffectsToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+EffectsToggle.Text = "Fire/Smoke/SpotLight: OFF"
+EffectsToggle.TextColor3 = Color3.new(1, 1, 1)
+EffectsToggle.Font = Enum.Font.GothamBold
+EffectsToggle.TextSize = 12
+EffectsToggle.Parent = ScrollFrame
 
-	yPos = yPos + 28
+local EffectsToggleCorner = Instance.new("UICorner")
+EffectsToggleCorner.CornerRadius = UDim.new(0, 6)
+EffectsToggleCorner.Parent = EffectsToggle
 
-	-- テキストボックス
-	local textBox = Instance.new("TextBox")
-	textBox.Size = UDim2.new(0.65, -8, 0, 28)
-	textBox.Position = UDim2.new(0, 8, 0, yPos)
-	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	textBox.TextColor3 = Color3.new(1, 1, 1)
-	textBox.Font = Enum.Font.GothamBold
-	textBox.TextSize = 12
-	textBox.Text = tostring(_G.GraphicsSettings[settingKey])
-	textBox.PlaceholderText = min .. "-" .. max
-	textBox.Parent = ScrollFrame
-
-	local textBoxCorner = Instance.new("UICorner")
-	textBoxCorner.CornerRadius = UDim.new(0, 4)
-	textBoxCorner.Parent = textBox
-
-	-- ON/OFF ボタン
-	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.new(0.3, 0, 0, 28)
-	toggleBtn.Position = UDim2.new(0.68, 0, 0, yPos)
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-	toggleBtn.Text = "OFF"
-	toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-	toggleBtn.Font = Enum.Font.GothamBold
-	toggleBtn.TextSize = 10
-	toggleBtn.Parent = ScrollFrame
-
-	local toggleCorner = Instance.new("UICorner")
-	toggleCorner.CornerRadius = UDim.new(0, 4)
-	toggleCorner.Parent = toggleBtn
-
-	yPos = yPos + 34
-
-	-- 更新処理
-	local function updateValue()
-		local val = tonumber(textBox.Text)
-		if val then
-			val = math.clamp(val, min, max)
-			_G.GraphicsSettings[settingKey] = val
-			textBox.Text = tostring(val)
-			labelText.Text = label .. ": " .. tostring(val)
-			fn18()  -- ★ その場で反映
-		end
-	end
-
-	textBox.FocusLost:Connect(function()
-		updateValue()
-	end)
-
-	local enabled = false
-	toggleBtn.MouseButton1Click:Connect(function()
-		enabled = not enabled
-		toggleBtn.Text = enabled and "ON" or "OFF"
-		toggleBtn.BackgroundColor3 = enabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
-		textBox.Visible = enabled
-
-		if enabled then
-			-- テキストボックスから値を取得
-			local val = tonumber(textBox.Text) or defaultValue
-			val = math.clamp(val, min, max)
-			_G.GraphicsSettings[settingKey] = val
-			textBox.Text = tostring(val)
-			labelText.Text = label .. ": " .. tostring(val)
-		else
-			_G.GraphicsSettings[settingKey] = defaultValue
-			textBox.Text = tostring(defaultValue)
-			labelText.Text = label .. ": " .. tostring(defaultValue)
-		end
-		fn18()  -- ★ その場で反映
-	end)
-
-	textBox.Visible = false
-
-	-- 保存して後で更新用
-	table.insert(UIElements, {
-		labelText = labelText,
-		textBox = textBox,
-		toggleBtn = toggleBtn,
-		settingKey = settingKey,
-		defaultValue = defaultValue
-	})
-end
-
--- ============================================================
--- 全設定項目を作成
--- ============================================================
-
-createSetting("Part Transparency", "Part_Transparency", 0, 0, 1)
-createSetting("Part Reflectance", "Part_Reflectance", 0, 0, 1)
-createSetting("Decal Transparency", "Decal_Transparency", 0, 0, 1)
-createSetting("Particle LifetimeMin", "Particle_LifetimeMin", 0, 0, 10)
-createSetting("Particle LifetimeMax", "Particle_LifetimeMax", 0, 0, 10)
-createSetting("Explosion BlastPressure", "Explosion_BlastPressure", 1, 0, 1000)
-createSetting("Explosion BlastRadius", "Explosion_BlastRadius", 1, 0, 200)
-
--- ============================================================
--- ON/OFF トグル
--- ============================================================
-
-local toggleYPos = yPos + 10
-
-local function createToggleSetting(label, settingKey)
-	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.new(1, -16, 0, 32)
-	toggleBtn.Position = UDim2.new(0, 8, 0, toggleYPos)
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-	toggleBtn.Text = label .. ": OFF"
-	toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-	toggleBtn.Font = Enum.Font.GothamBold
-	toggleBtn.TextSize = 12
-	toggleBtn.Parent = ScrollFrame
-
-	local toggleCorner = Instance.new("UICorner")
-	toggleCorner.CornerRadius = UDim.new(0, 6)
-	toggleCorner.Parent = toggleBtn
-
-	toggleBtn.MouseButton1Click:Connect(function()
-		_G.GraphicsSettings[settingKey] = not _G.GraphicsSettings[settingKey]
-		toggleBtn.Text = label .. ": " .. (_G.GraphicsSettings[settingKey] and "ON" or "OFF")
-		toggleBtn.BackgroundColor3 = _G.GraphicsSettings[settingKey] and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
-		fn18()  -- ★ その場で反映
-		print("[Graphics] " .. label .. ": " .. (_G.GraphicsSettings[settingKey] and "有効" or "無効"))
-	end)
-
-	toggleYPos = toggleYPos + 38
-end
-
-createToggleSetting("Part Material", "Part_Material")
-createToggleSetting("Part CanCollide", "Part_CanCollide")
-createToggleSetting("Particle Enabled", "Particle_Enabled")
-createToggleSetting("Effects Enabled", "Effects_Enabled")
-
--- ============================================================
--- リセット＆実行ボタン
--- ============================================================
-
-local ButtonYPos = toggleYPos + 10
-
-local EnableAllButton = Instance.new("TextButton")
-EnableAllButton.Size = UDim2.new(1, -16, 0, 35)
-EnableAllButton.Position = UDim2.new(0, 8, 0, ButtonYPos)
-EnableAllButton.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
-EnableAllButton.Text = "全て実行 (ON)"
-EnableAllButton.TextColor3 = Color3.new(1, 1, 1)
-EnableAllButton.Font = Enum.Font.GothamBold
-EnableAllButton.TextSize = 13
-EnableAllButton.Parent = ScrollFrame
-
-local EnableCorner = Instance.new("UICorner")
-EnableCorner.CornerRadius = UDim.new(0, 6)
-EnableCorner.Parent = EnableAllButton
-
-EnableAllButton.MouseButton1Click:Connect(function()
+EffectsToggle.MouseButton1Click:Connect(function()
+	_G.GraphicsSettings.Effects_Enabled = not _G.GraphicsSettings.Effects_Enabled
+	_G.GraphicsSettings.Effects_OnOff = _G.GraphicsSettings.Effects_Enabled and "ON" or "OFF"
+	EffectsToggle.Text = "Fire/Smoke/SpotLight: " .. _G.GraphicsSettings.Effects_OnOff
+	EffectsToggle.BackgroundColor3 = _G.GraphicsSettings.Effects_Enabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	EffectsOnOffLabel.Text = "Status: " .. _G.GraphicsSettings.Effects_OnOff
 	_G.G_LowGraphics = true
 	fn18()
-	print("[Graphics] 全設定を実行")
+	print("[Graphics] Fire/Smoke/SpotLight: " .. _G.GraphicsSettings.Effects_OnOff)
 end)
 
-ButtonYPos = ButtonYPos + 41
+-- ============================================================
+-- セクション 2: ParticleEmitter / Trail
+-- ============================================================
+
+local ParticleLabel = Instance.new("TextLabel")
+ParticleLabel.Size = UDim2.new(1, -16, 0, 28)
+ParticleLabel.Position = UDim2.new(0, 8, 0, 125)
+ParticleLabel.BackgroundColor3 = Color3.fromRGB(50, 100, 50)
+ParticleLabel.Text = "✨ ParticleEmitter / Trail"
+ParticleLabel.TextColor3 = Color3.new(1, 1, 1)
+ParticleLabel.Font = Enum.Font.GothamBold
+ParticleLabel.TextSize = 12
+ParticleLabel.Parent = ScrollFrame
+
+local ParticleLabelCorner = Instance.new("UICorner")
+ParticleLabelCorner.CornerRadius = UDim.new(0, 4)
+ParticleLabelCorner.Parent = ParticleLabel
+
+local ParticleOnOffLabel = Instance.new("TextLabel")
+ParticleOnOffLabel.Size = UDim2.new(1, -16, 0, 20)
+ParticleOnOffLabel.Position = UDim2.new(0, 8, 0, 165)
+ParticleOnOffLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ParticleOnOffLabel.Text = "Status: OFF | LifetimeMin: 0 | LifetimeMax: 0"
+ParticleOnOffLabel.TextColor3 = Color3.new(1, 1, 1)
+ParticleOnOffLabel.Font = Enum.Font.Gotham
+ParticleOnOffLabel.TextSize = 10
+ParticleOnOffLabel.TextWrapped = true
+ParticleOnOffLabel.Parent = ScrollFrame
+
+local ParticleOnOffLabelCorner = Instance.new("UICorner")
+ParticleOnOffLabelCorner.CornerRadius = UDim.new(0, 4)
+ParticleOnOffLabelCorner.Parent = ParticleOnOffLabel
+
+local ParticleMinLabel = Instance.new("TextLabel")
+ParticleMinLabel.Size = UDim2.new(0.4, -4, 0, 18)
+ParticleMinLabel.Position = UDim2.new(0, 8, 0, 195)
+ParticleMinLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ParticleMinLabel.Text = "LifetimeMin:"
+ParticleMinLabel.TextColor3 = Color3.new(1, 1, 1)
+ParticleMinLabel.Font = Enum.Font.Gotham
+ParticleMinLabel.TextSize = 10
+ParticleMinLabel.Parent = ScrollFrame
+
+local ParticleMinTextBox = Instance.new("TextBox")
+ParticleMinTextBox.Size = UDim2.new(0.4, -4, 0, 24)
+ParticleMinTextBox.Position = UDim2.new(0.5, 0, 0, 193)
+ParticleMinTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ParticleMinTextBox.TextColor3 = Color3.new(1, 1, 1)
+ParticleMinTextBox.Font = Enum.Font.GothamBold
+ParticleMinTextBox.TextSize = 11
+ParticleMinTextBox.Text = "0"
+ParticleMinTextBox.PlaceholderText = "0-10"
+ParticleMinTextBox.Parent = ScrollFrame
+
+local ParticleMinCorner = Instance.new("UICorner")
+ParticleMinCorner.CornerRadius = UDim.new(0, 4)
+ParticleMinCorner.Parent = ParticleMinTextBox
+
+ParticleMinTextBox.FocusLost:Connect(function()
+	local val = tonumber(ParticleMinTextBox.Text) or 0
+	val = math.clamp(val, 0, 10)
+	_G.GraphicsSettings.Particle_LifetimeMin = val
+	ParticleMinTextBox.Text = tostring(val)
+	ParticleOnOffLabel.Text = "Status: " .. _G.GraphicsSettings.Particle_OnOff .. " | LifetimeMin: " .. val .. " | LifetimeMax: " .. _G.GraphicsSettings.Particle_LifetimeMax
+	_G.G_LowGraphics = true
+	fn18()
+end)
+
+local ParticleMaxLabel = Instance.new("TextLabel")
+ParticleMaxLabel.Size = UDim2.new(0.4, -4, 0, 18)
+ParticleMaxLabel.Position = UDim2.new(0, 8, 0, 225)
+ParticleMaxLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ParticleMaxLabel.Text = "LifetimeMax:"
+ParticleMaxLabel.TextColor3 = Color3.new(1, 1, 1)
+ParticleMaxLabel.Font = Enum.Font.Gotham
+ParticleMaxLabel.TextSize = 10
+ParticleMaxLabel.Parent = ScrollFrame
+
+local ParticleMaxTextBox = Instance.new("TextBox")
+ParticleMaxTextBox.Size = UDim2.new(0.4, -4, 0, 24)
+ParticleMaxTextBox.Position = UDim2.new(0.5, 0, 0, 223)
+ParticleMaxTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ParticleMaxTextBox.TextColor3 = Color3.new(1, 1, 1)
+ParticleMaxTextBox.Font = Enum.Font.GothamBold
+ParticleMaxTextBox.TextSize = 11
+ParticleMaxTextBox.Text = "0"
+ParticleMaxTextBox.PlaceholderText = "0-10"
+ParticleMaxTextBox.Parent = ScrollFrame
+
+local ParticleMaxCorner = Instance.new("UICorner")
+ParticleMaxCorner.CornerRadius = UDim.new(0, 4)
+ParticleMaxCorner.Parent = ParticleMaxTextBox
+
+ParticleMaxTextBox.FocusLost:Connect(function()
+	local val = tonumber(ParticleMaxTextBox.Text) or 0
+	val = math.clamp(val, 0, 10)
+	_G.GraphicsSettings.Particle_LifetimeMax = val
+	ParticleMaxTextBox.Text = tostring(val)
+	ParticleOnOffLabel.Text = "Status: " .. _G.GraphicsSettings.Particle_OnOff .. " | LifetimeMin: " .. _G.GraphicsSettings.Particle_LifetimeMin .. " | LifetimeMax: " .. val
+	_G.G_LowGraphics = true
+	fn18()
+end)
+
+local ParticleToggle = Instance.new("TextButton")
+ParticleToggle.Size = UDim2.new(1, -16, 0, 35)
+ParticleToggle.Position = UDim2.new(0, 8, 0, 260)
+ParticleToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+ParticleToggle.Text = "ParticleEmitter/Trail: OFF"
+ParticleToggle.TextColor3 = Color3.new(1, 1, 1)
+ParticleToggle.Font = Enum.Font.GothamBold
+ParticleToggle.TextSize = 12
+ParticleToggle.Parent = ScrollFrame
+
+local ParticleToggleCorner = Instance.new("UICorner")
+ParticleToggleCorner.CornerRadius = UDim.new(0, 6)
+ParticleToggleCorner.Parent = ParticleToggle
+
+ParticleToggle.MouseButton1Click:Connect(function()
+	_G.GraphicsSettings.Particle_Enabled = not _G.GraphicsSettings.Particle_Enabled
+	_G.GraphicsSettings.Particle_OnOff = _G.GraphicsSettings.Particle_Enabled and "ON" or "OFF"
+	ParticleToggle.Text = "ParticleEmitter/Trail: " .. _G.GraphicsSettings.Particle_OnOff
+	ParticleToggle.BackgroundColor3 = _G.GraphicsSettings.Particle_Enabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	ParticleOnOffLabel.Text = "Status: " .. _G.GraphicsSettings.Particle_OnOff .. " | LifetimeMin: " .. _G.GraphicsSettings.Particle_LifetimeMin .. " | LifetimeMax: " .. _G.GraphicsSettings.Particle_LifetimeMax
+	_G.G_LowGraphics = true
+	fn18()
+	print("[Graphics] ParticleEmitter/Trail: " .. _G.GraphicsSettings.Particle_OnOff)
+end)
+
+-- ============================================================
+-- セクション 3: Decal / Texture
+-- ============================================================
+
+local DecalLabel = Instance.new("TextLabel")
+DecalLabel.Size = UDim2.new(1, -16, 0, 28)
+DecalLabel.Position = UDim2.new(0, 8, 0, 310)
+DecalLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 100)
+DecalLabel.Text = "🎨 Decal / Texture"
+DecalLabel.TextColor3 = Color3.new(1, 1, 1)
+DecalLabel.Font = Enum.Font.GothamBold
+DecalLabel.TextSize = 12
+DecalLabel.Parent = ScrollFrame
+
+local DecalLabelCorner = Instance.new("UICorner")
+DecalLabelCorner.CornerRadius = UDim.new(0, 4)
+DecalLabelCorner.Parent = DecalLabel
+
+local DecalOnOffLabel = Instance.new("TextLabel")
+DecalOnOffLabel.Size = UDim2.new(1, -16, 0, 20)
+DecalOnOffLabel.Position = UDim2.new(0, 8, 0, 350)
+DecalOnOffLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DecalOnOffLabel.Text = "Status: OFF | Transparency: 0"
+DecalOnOffLabel.TextColor3 = Color3.new(1, 1, 1)
+DecalOnOffLabel.Font = Enum.Font.Gotham
+DecalOnOffLabel.TextSize = 11
+DecalOnOffLabel.Parent = ScrollFrame
+
+local DecalOnOffLabelCorner = Instance.new("UICorner")
+DecalOnOffLabelCorner.CornerRadius = UDim.new(0, 4)
+DecalOnOffLabelCorner.Parent = DecalOnOffLabel
+
+local DecalTransparencyLabel = Instance.new("TextLabel")
+DecalTransparencyLabel.Size = UDim2.new(0.4, -4, 0, 18)
+DecalTransparencyLabel.Position = UDim2.new(0, 8, 0, 380)
+DecalTransparencyLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+DecalTransparencyLabel.Text = "Transparency:"
+DecalTransparencyLabel.TextColor3 = Color3.new(1, 1, 1)
+DecalTransparencyLabel.Font = Enum.Font.Gotham
+DecalTransparencyLabel.TextSize = 10
+DecalTransparencyLabel.Parent = ScrollFrame
+
+local DecalTransparencyTextBox = Instance.new("TextBox")
+DecalTransparencyTextBox.Size = UDim2.new(0.4, -4, 0, 24)
+DecalTransparencyTextBox.Position = UDim2.new(0.5, 0, 0, 378)
+DecalTransparencyTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DecalTransparencyTextBox.TextColor3 = Color3.new(1, 1, 1)
+DecalTransparencyTextBox.Font = Enum.Font.GothamBold
+DecalTransparencyTextBox.TextSize = 11
+DecalTransparencyTextBox.Text = "0"
+DecalTransparencyTextBox.PlaceholderText = "0-1"
+DecalTransparencyTextBox.Parent = ScrollFrame
+
+local DecalTransparencyCorner = Instance.new("UICorner")
+DecalTransparencyCorner.CornerRadius = UDim.new(0, 4)
+DecalTransparencyCorner.Parent = DecalTransparencyTextBox
+
+DecalTransparencyTextBox.FocusLost:Connect(function()
+	local val = tonumber(DecalTransparencyTextBox.Text) or 0
+	val = math.clamp(val, 0, 1)
+	_G.GraphicsSettings.Decal_Transparency = val
+	DecalTransparencyTextBox.Text = string.format("%.2f", val)
+	DecalOnOffLabel.Text = "Status: " .. _G.GraphicsSettings.Decal_OnOff .. " | Transparency: " .. string.format("%.2f", val)
+	_G.G_LowGraphics = true
+	fn18()
+end)
+
+local DecalToggle = Instance.new("TextButton")
+DecalToggle.Size = UDim2.new(1, -16, 0, 35)
+DecalToggle.Position = UDim2.new(0, 8, 0, 410)
+DecalToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+DecalToggle.Text = "Decal/Texture: OFF"
+DecalToggle.TextColor3 = Color3.new(1, 1, 1)
+DecalToggle.Font = Enum.Font.GothamBold
+DecalToggle.TextSize = 12
+DecalToggle.Parent = ScrollFrame
+
+local DecalToggleCorner = Instance.new("UICorner")
+DecalToggleCorner.CornerRadius = UDim.new(0, 6)
+DecalToggleCorner.Parent = DecalToggle
+
+DecalToggle.MouseButton1Click:Connect(function()
+	_G.GraphicsSettings.Decal_OnOff = _G.GraphicsSettings.Decal_OnOff == "OFF" and "ON" or "OFF"
+	DecalToggle.Text = "Decal/Texture: " .. _G.GraphicsSettings.Decal_OnOff
+	DecalToggle.BackgroundColor3 = _G.GraphicsSettings.Decal_OnOff == "ON" and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	DecalOnOffLabel.Text = "Status: " .. _G.GraphicsSettings.Decal_OnOff .. " | Transparency: " .. string.format("%.2f", _G.GraphicsSettings.Decal_Transparency)
+	_G.G_LowGraphics = true
+	fn18()
+	print("[Graphics] Decal/Texture: " .. _G.GraphicsSettings.Decal_OnOff)
+end)
+
+-- ============================================================
+-- リセット
+-- ============================================================
 
 local ResetButton = Instance.new("TextButton")
 ResetButton.Size = UDim2.new(1, -16, 0, 35)
-ResetButton.Position = UDim2.new(0, 8, 0, ButtonYPos)
+ResetButton.Position = UDim2.new(0, 8, 0, 460)
 ResetButton.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
 ResetButton.Text = "リセット (全部 OFF)"
 ResetButton.TextColor3 = Color3.new(1, 1, 1)
@@ -458,30 +472,33 @@ ResetCorner.CornerRadius = UDim.new(0, 6)
 ResetCorner.Parent = ResetButton
 
 ResetButton.MouseButton1Click:Connect(function()
-	-- ★ 内部設定をリセット
 	_G.GraphicsSettings = {
-		Part_Transparency = 0,
-		Part_Reflectance = 0,
-		Part_Material = false,
-		Part_CanCollide = false,
-		Decal_Transparency = 0,
+		Effects_Enabled = false,
+		Effects_OnOff = "OFF",
 		Particle_LifetimeMin = 0,
 		Particle_LifetimeMax = 0,
 		Particle_Enabled = false,
-		Explosion_BlastPressure = 1,
-		Explosion_BlastRadius = 1,
-		Effects_Enabled = false,
+		Particle_OnOff = "OFF",
+		Decal_Transparency = 0,
+		Decal_OnOff = "OFF",
 	}
 	_G.G_LowGraphics = false
 	
-	-- ★ UI を自動更新（GUI は消さない）
-	for _, element in ipairs(UIElements) do
-		element.labelText.Text = element.labelText.Text:match("^[^:]+") .. ": " .. tostring(element.defaultValue)
-		element.textBox.Text = tostring(element.defaultValue)
-		element.textBox.Visible = false
-		element.toggleBtn.Text = element.toggleBtn.Text:match("^[^:]+") .. ": OFF"
-		element.toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-	end
+	-- UI 更新
+	EffectsToggle.Text = "Fire/Smoke/SpotLight: OFF"
+	EffectsToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	EffectsOnOffLabel.Text = "Status: OFF"
+	
+	ParticleMinTextBox.Text = "0"
+	ParticleMaxTextBox.Text = "0"
+	ParticleToggle.Text = "ParticleEmitter/Trail: OFF"
+	ParticleToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	ParticleOnOffLabel.Text = "Status: OFF | LifetimeMin: 0 | LifetimeMax: 0"
+	
+	DecalTransparencyTextBox.Text = "0"
+	DecalToggle.Text = "Decal/Texture: OFF"
+	DecalToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	DecalOnOffLabel.Text = "Status: OFF | Transparency: 0.00"
 	
 	fn18()
 	print("[Graphics] リセット完了（すべて OFF）")
@@ -489,5 +506,3 @@ end)
 
 print("[Graphics] GUI 起動完了")
 print("[Graphics] 初期状態: すべて OFF")
-print("[Graphics] テキストで数値を入力して調整可能")
-print("[Graphics] GUI サイズは Title の 'Size' ボックスで変更可能（幅 高さ）")
