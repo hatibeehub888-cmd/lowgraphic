@@ -1,5 +1,5 @@
 -- ============================================================
--- Graphics Reduction GUI（スマホ対応・テキスト入力版）
+-- Graphics Reduction GUI（スマホ対応・0〜10入力版）
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -7,44 +7,36 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 _G.G_LowGraphics = true
-_G.GraphicsLevel = 30  -- 0（最軽量）〜 100（デフォルト）
-_G.G_RemoveLava = true
-_G.G_WalkOnWater = true
+_G.GraphicsLevel_Transparency = 0  -- 0-10
+_G.GraphicsLevel_Reflectance = 0   -- 0-10
+_G.GraphicsLevel_Material = false  -- Plastic 変更 ON/OFF
 
 -- ============================================================
--- Graphics 関数群（修正版）
+-- Graphics 関数群
 -- ============================================================
 
 local function fn17(arg)
-	local level = _G.GraphicsLevel / 100
-	
 	if arg:IsA("Part") or arg:IsA("Union") or arg:IsA("CornerWedgePart") or arg:IsA("TrussPart") then
-		arg.Material = Enum.Material.SmoothPlastic
-		arg.Reflectance = 0.5 * level
-		arg.Transparency = 1 - (0.95 * level)
-		if level < 0.3 then
-			pcall(function()
-				arg.CanCollide = false
-			end)
+		if _G.GraphicsLevel_Material then
+			arg.Material = Enum.Material.SmoothPlastic
+		end
+		if _G.GraphicsLevel_Reflectance > 0 then
+			arg.Reflectance = _G.GraphicsLevel_Reflectance / 10
+		end
+		if _G.GraphicsLevel_Transparency > 0 then
+			arg.Transparency = _G.GraphicsLevel_Transparency / 10
 		end
 	elseif arg:IsA("Decal") or arg:IsA("Texture") then
-		arg.Transparency = 1 - (0.9 * level)
-	elseif arg:IsA("ParticleEmitter") or arg:IsA("Trail") then
-		arg.Lifetime = NumberRange.new(5 * level)
-		if level < 0.5 then
-			pcall(function()
-				arg.Enabled = false
-			end)
+		if _G.GraphicsLevel_Transparency > 0 then
+			arg.Transparency = _G.GraphicsLevel_Transparency / 10
 		end
+	elseif arg:IsA("ParticleEmitter") or arg:IsA("Trail") then
+		arg.Lifetime = NumberRange.new(0)
 	elseif arg:IsA("Explosion") then
-		pcall(function()
-			arg.BlastPressure = 500 * level
-			arg.BlastRadius = 80 * level
-		end)
+		arg.BlastPressure = 1
+		arg.BlastRadius = 1
 	elseif arg:IsA("Fire") or arg:IsA("SpotLight") or arg:IsA("Smoke") then
-		arg.Enabled = level > 0.3
-	elseif arg:IsA("SurfaceGui") or arg:IsA("BillboardGui") then
-		arg.Enabled = level > 0.3
+		arg.Enabled = false
 	end
 end
 
@@ -52,22 +44,8 @@ local function fn18()
 	task.spawn(function()
 		pcall(function()
 			local n = 0
-			local Workspace = game:GetService("Workspace")
-			local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-			for _, descendant in pairs(Workspace:GetDescendants()) do
-				pcall(function()
-					fn17(descendant)
-				end)
-				n += 1
-
-				if n % 500 == 0 then
-					task.wait()
-				end
-			end
-
-			n = 0
-			for _, descendant in pairs(ReplicatedStorage:GetDescendants()) do
+			for _, descendant in pairs(game:GetDescendants()) do
 				pcall(function()
 					fn17(descendant)
 				end)
@@ -79,115 +57,12 @@ local function fn18()
 			end
 		end)
 
-		print("[Graphics] 画質調整処理完了（Level: " .. _G.GraphicsLevel .. "/100）")
+		print("[Graphics] 画質調整処理完了")
 	end)
 end
 
-local function fn13(arg)
-	if not arg then
-		return
-	end
-	local name = arg.Name
-
-	if name == "Lava" then
-		pcall(function()
-			arg:Destroy()
-		end)
-	elseif name == "LavaParts" then
-		local parent = arg.Parent
-
-		if parent then
-			local name2 = parent.Name
-
-			if name2 == "CircleIsland" or name2 == "GhostShipInterior" then
-				local parent2 = parent.Parent
-
-				if parent2 and parent2.Name == "Map" then
-					pcall(function()
-						arg:Destroy()
-					end)
-				end
-			end
-		end
-	end
-end
-
-local function fn14()
-	task.spawn(function()
-		pcall(function()
-			local n = 0
-			local Workspace = game:GetService("Workspace")
-			local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-			for _, descendant in pairs(Workspace:GetDescendants()) do
-				fn13(descendant)
-				n += 1
-
-				if n % 500 == 0 then
-					task.wait()
-				end
-			end
-
-			n = 0
-			for _, descendant in pairs(ReplicatedStorage:GetDescendants()) do
-				fn13(descendant)
-				n += 1
-
-				if n % 500 == 0 then
-					task.wait()
-				end
-			end
-		end)
-
-		print("[Graphics] 溶岩除去完了（再ログインで復元）")
-	end)
-end
-
-local flag3 = false
-
-local function fn15()
-	if flag3 then
-		return
-	end
-	flag3 = true
-
-	task.spawn(function()
-		while task.wait(0.2) do
-			if _G.G_WalkOnWater then
-				pcall(function()
-					local waterBasePlane = game:GetService("Workspace"):FindFirstChild("Map") and game.Workspace.Map:FindFirstChild("WaterBase-Plane")
-
-					if waterBasePlane then
-						waterBasePlane.Size = Vector3.new(1000, 112, 1000)
-					end
-				end)
-
-				continue
-			end
-
-			break
-		end
-
-		flag3 = false
-	end)
-end
-
-local function fn16()
-	_G.G_WalkOnWater = false
-
-	pcall(function()
-		local waterBasePlane = game:GetService("Workspace"):FindFirstChild("Map") and game.Workspace.Map:FindFirstChild("WaterBase-Plane")
-
-		if waterBasePlane then
-			waterBasePlane.Size = Vector3.new(1000, 80, 1000)
-		end
-	end)
-end
-
--- 初期化
+_G.G_LowGraphics = true
 fn18()
-fn14()
-fn15()
 
 game:GetService("Workspace").DescendantAdded:Connect(function(descendant)
 	if _G.G_LowGraphics then
@@ -208,7 +83,7 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 300, 0, 450)
+Main.Size = UDim2.new(0, 320, 0, 500)
 Main.Position = UDim2.new(0.02, 0, 0.3, 0)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
@@ -284,202 +159,204 @@ CloseButton.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================================
--- Level テキスト入力
+-- Transparency 設定
 -- ============================================================
 
-local LevelLabel = Instance.new("TextLabel")
-LevelLabel.Size = UDim2.new(1, -16, 0, 20)
-LevelLabel.Position = UDim2.new(0, 8, 0, 38)
-LevelLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-LevelLabel.Text = "Graphics Level:"
-LevelLabel.TextColor3 = Color3.new(1, 1, 1)
-LevelLabel.Font = Enum.Font.Gotham
-LevelLabel.TextSize = 11
-LevelLabel.Parent = Main
+local TransparencyLabel = Instance.new("TextLabel")
+TransparencyLabel.Size = UDim2.new(1, -16, 0, 20)
+TransparencyLabel.Position = UDim2.new(0, 8, 0, 38)
+TransparencyLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TransparencyLabel.Text = "Transparency: " .. tostring(_G.GraphicsLevel_Transparency) .. "/10"
+TransparencyLabel.TextColor3 = Color3.new(1, 1, 1)
+TransparencyLabel.Font = Enum.Font.Gotham
+TransparencyLabel.TextSize = 11
+TransparencyLabel.Parent = Main
 
-local LevelLabelCorner = Instance.new("UICorner")
-LevelLabelCorner.CornerRadius = UDim.new(0, 4)
-LevelLabelCorner.Parent = LevelLabel
+local TransparencyLabelCorner = Instance.new("UICorner")
+TransparencyLabelCorner.CornerRadius = UDim.new(0, 4)
+TransparencyLabelCorner.Parent = TransparencyLabel
 
-local LevelTextBox = Instance.new("TextBox")
-LevelTextBox.Size = UDim2.new(1, -16, 0, 32)
-LevelTextBox.Position = UDim2.new(0, 8, 0, 64)
-LevelTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-LevelTextBox.TextColor3 = Color3.new(1, 1, 1)
-LevelTextBox.Font = Enum.Font.GothamBold
-LevelTextBox.TextSize = 16
-LevelTextBox.Text = tostring(_G.GraphicsLevel)
-LevelTextBox.PlaceholderText = "0-100"
-LevelTextBox.ClearTextOnFocus = false
-LevelTextBox.Parent = Main
+local TransparencyToggle = Instance.new("TextButton")
+TransparencyToggle.Size = UDim2.new(0.3, 0, 0, 24)
+TransparencyToggle.Position = UDim2.new(0.65, 0, 0.38, 0)
+TransparencyToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+TransparencyToggle.Text = "OFF"
+TransparencyToggle.TextColor3 = Color3.new(1, 1, 1)
+TransparencyToggle.Font = Enum.Font.GothamBold
+TransparencyToggle.TextSize = 10
+TransparencyToggle.Parent = Main
 
-local LevelTextBoxCorner = Instance.new("UICorner")
-LevelTextBoxCorner.CornerRadius = UDim.new(0, 6)
-LevelTextBoxCorner.Parent = LevelTextBox
+local TransparencyToggleCorner = Instance.new("UICorner")
+TransparencyToggleCorner.CornerRadius = UDim.new(0, 4)
+TransparencyToggleCorner.Parent = TransparencyToggle
 
-local function updateLevel(newLevel)
-	_G.GraphicsLevel = math.clamp(tonumber(newLevel) or 30, 0, 100)
-	LevelTextBox.Text = tostring(_G.GraphicsLevel)
+local TransparencyTextBox = Instance.new("TextBox")
+TransparencyTextBox.Size = UDim2.new(0.3, 0, 0, 24)
+TransparencyTextBox.Position = UDim2.new(0.04, 0, 0.38, 0)
+TransparencyTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TransparencyTextBox.TextColor3 = Color3.new(1, 1, 1)
+TransparencyTextBox.Font = Enum.Font.GothamBold
+TransparencyTextBox.TextSize = 11
+TransparencyTextBox.Text = "0"
+TransparencyTextBox.PlaceholderText = "0-10"
+TransparencyTextBox.Parent = Main
 
-	task.spawn(function()
-		fn18()
-	end)
+local TransparencyTextBoxCorner = Instance.new("UICorner")
+TransparencyTextBoxCorner.CornerRadius = UDim.new(0, 4)
+TransparencyTextBoxCorner.Parent = TransparencyTextBox
+
+local function updateTransparency(val)
+	local value = math.clamp(tonumber(val) or 0, 0, 10)
+	_G.GraphicsLevel_Transparency = value
+	TransparencyTextBox.Text = tostring(value)
+	TransparencyLabel.Text = "Transparency: " .. tostring(value) .. "/10"
+	fn18()
 end
 
-LevelTextBox.FocusLost:Connect(function(enterPressed)
-	local val = tonumber(LevelTextBox.Text)
-	if val then
-		updateLevel(val)
-		print("[Graphics] Level 変更: " .. _G.GraphicsLevel)
+TransparencyTextBox.FocusLost:Connect(function()
+	updateTransparency(TransparencyTextBox.Text)
+end)
+
+local TransparencyEnabled = false
+TransparencyToggle.MouseButton1Click:Connect(function()
+	TransparencyEnabled = not TransparencyEnabled
+	TransparencyToggle.Text = TransparencyEnabled and "ON" or "OFF"
+	TransparencyToggle.BackgroundColor3 = TransparencyEnabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	TransparencyTextBox.Visible = TransparencyEnabled
+	
+	if TransparencyEnabled then
+		updateTransparency(5)
 	else
-		LevelTextBox.Text = tostring(_G.GraphicsLevel)
+		updateTransparency(0)
 	end
 end)
 
+TransparencyTextBox.Visible = false
+
 -- ============================================================
--- +/- ボタン
+-- Reflectance 設定
 -- ============================================================
 
-local PlusButton = Instance.new("TextButton")
-PlusButton.Size = UDim2.new(0.48, 0, 0, 32)
-PlusButton.Position = UDim2.new(0.04, 0, 0.11, 0)
-PlusButton.BackgroundColor3 = Color3.fromRGB(90, 180, 90)
-PlusButton.Text = "+ (10)"
-PlusButton.TextColor3 = Color3.new(1, 1, 1)
-PlusButton.Font = Enum.Font.GothamBold
-PlusButton.TextSize = 12
-PlusButton.Parent = Main
+local ReflectanceLabel = Instance.new("TextLabel")
+ReflectanceLabel.Size = UDim2.new(1, -16, 0, 20)
+ReflectanceLabel.Position = UDim2.new(0, 8, 0, 75)
+ReflectanceLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ReflectanceLabel.Text = "Reflectance (光沢): " .. tostring(_G.GraphicsLevel_Reflectance) .. "/10"
+ReflectanceLabel.TextColor3 = Color3.new(1, 1, 1)
+ReflectanceLabel.Font = Enum.Font.Gotham
+ReflectanceLabel.TextSize = 11
+ReflectanceLabel.Parent = Main
 
-local PlusCorner = Instance.new("UICorner")
-PlusCorner.CornerRadius = UDim.new(0, 6)
-PlusCorner.Parent = PlusButton
+local ReflectanceLabelCorner = Instance.new("UICorner")
+ReflectanceLabelCorner.CornerRadius = UDim.new(0, 4)
+ReflectanceLabelCorner.Parent = ReflectanceLabel
 
-PlusButton.MouseButton1Click:Connect(function()
-	updateLevel(_G.GraphicsLevel + 10)
+local ReflectanceToggle = Instance.new("TextButton")
+ReflectanceToggle.Size = UDim2.new(0.3, 0, 0, 24)
+ReflectanceToggle.Position = UDim2.new(0.65, 0, 0.75, 0)
+ReflectanceToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+ReflectanceToggle.Text = "OFF"
+ReflectanceToggle.TextColor3 = Color3.new(1, 1, 1)
+ReflectanceToggle.Font = Enum.Font.GothamBold
+ReflectanceToggle.TextSize = 10
+ReflectanceToggle.Parent = Main
+
+local ReflectanceToggleCorner = Instance.new("UICorner")
+ReflectanceToggleCorner.CornerRadius = UDim.new(0, 4)
+ReflectanceToggleCorner.Parent = ReflectanceToggle
+
+local ReflectanceTextBox = Instance.new("TextBox")
+ReflectanceTextBox.Size = UDim2.new(0.3, 0, 0, 24)
+ReflectanceTextBox.Position = UDim2.new(0.04, 0, 0.75, 0)
+ReflectanceTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ReflectanceTextBox.TextColor3 = Color3.new(1, 1, 1)
+ReflectanceTextBox.Font = Enum.Font.GothamBold
+ReflectanceTextBox.TextSize = 11
+ReflectanceTextBox.Text = "0"
+ReflectanceTextBox.PlaceholderText = "0-10"
+ReflectanceTextBox.Parent = Main
+
+local ReflectanceTextBoxCorner = Instance.new("UICorner")
+ReflectanceTextBoxCorner.CornerRadius = UDim.new(0, 4)
+ReflectanceTextBoxCorner.Parent = ReflectanceTextBox
+
+local function updateReflectance(val)
+	local value = math.clamp(tonumber(val) or 0, 0, 10)
+	_G.GraphicsLevel_Reflectance = value
+	ReflectanceTextBox.Text = tostring(value)
+	ReflectanceLabel.Text = "Reflectance (光沢): " .. tostring(value) .. "/10"
+	fn18()
+end
+
+ReflectanceTextBox.FocusLost:Connect(function()
+	updateReflectance(ReflectanceTextBox.Text)
 end)
 
-local MinusButton = Instance.new("TextButton")
-MinusButton.Size = UDim2.new(0.48, 0, 0, 32)
-MinusButton.Position = UDim2.new(0.52, 0, 0.11, 0)
-MinusButton.BackgroundColor3 = Color3.fromRGB(180, 90, 90)
-MinusButton.Text = "- (10)"
-MinusButton.TextColor3 = Color3.new(1, 1, 1)
-MinusButton.Font = Enum.Font.GothamBold
-MinusButton.TextSize = 12
-MinusButton.Parent = Main
-
-local MinusCorner = Instance.new("UICorner")
-MinusCorner.CornerRadius = UDim.new(0, 6)
-MinusCorner.Parent = MinusButton
-
-MinusButton.MouseButton1Click:Connect(function()
-	updateLevel(_G.GraphicsLevel - 10)
-end)
-
--- ============================================================
--- Toggle buttons
--- ============================================================
-
-local LowGraphicsToggle = Instance.new("TextButton")
-LowGraphicsToggle.Size = UDim2.new(1, -16, 0, 35)
-LowGraphicsToggle.Position = UDim2.new(0, 8, 0, 108)
-LowGraphicsToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
-LowGraphicsToggle.Text = "画質低下: ON"
-LowGraphicsToggle.TextColor3 = Color3.new(1, 1, 1)
-LowGraphicsToggle.Font = Enum.Font.GothamBold
-LowGraphicsToggle.TextSize = 14
-LowGraphicsToggle.Parent = Main
-
-local LowGraphicsCorner = Instance.new("UICorner")
-LowGraphicsCorner.CornerRadius = UDim.new(0, 6)
-LowGraphicsCorner.Parent = LowGraphicsToggle
-
-LowGraphicsToggle.MouseButton1Click:Connect(function()
-	_G.G_LowGraphics = not _G.G_LowGraphics
-	LowGraphicsToggle.Text = _G.G_LowGraphics and "画質低下: ON" or "画質低下: OFF"
-	LowGraphicsToggle.BackgroundColor3 = _G.G_LowGraphics and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
-
-	if _G.G_LowGraphics then
-		fn18()
+local ReflectanceEnabled = false
+ReflectanceToggle.MouseButton1Click:Connect(function()
+	ReflectanceEnabled = not ReflectanceEnabled
+	ReflectanceToggle.Text = ReflectanceEnabled and "ON" or "OFF"
+	ReflectanceToggle.BackgroundColor3 = ReflectanceEnabled and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	ReflectanceTextBox.Visible = ReflectanceEnabled
+	
+	if ReflectanceEnabled then
+		updateReflectance(0)
 	else
-		print("[Graphics] 画質低下: OFF")
+		updateReflectance(0)
 	end
 end)
 
-local RemoveLavaToggle = Instance.new("TextButton")
-RemoveLavaToggle.Size = UDim2.new(1, -16, 0, 35)
-RemoveLavaToggle.Position = UDim2.new(0, 8, 0, 148)
-RemoveLavaToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
-RemoveLavaToggle.Text = "溶岩除去: ON"
-RemoveLavaToggle.TextColor3 = Color3.new(1, 1, 1)
-RemoveLavaToggle.Font = Enum.Font.GothamBold
-RemoveLavaToggle.TextSize = 12
-RemoveLavaToggle.Parent = Main
+ReflectanceTextBox.Visible = false
 
-local RemoveLavaCorner = Instance.new("UICorner")
-RemoveLavaCorner.CornerRadius = UDim.new(0, 6)
-RemoveLavaCorner.Parent = RemoveLavaToggle
+-- ============================================================
+-- Material (Plastic) 設定
+-- ============================================================
 
-RemoveLavaToggle.MouseButton1Click:Connect(function()
-	_G.G_RemoveLava = not _G.G_RemoveLava
-	RemoveLavaToggle.Text = _G.G_RemoveLava and "溶岩除去: ON" or "溶岩除去: OFF"
-	RemoveLavaToggle.BackgroundColor3 = _G.G_RemoveLava and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+local MaterialLabel = Instance.new("TextLabel")
+MaterialLabel.Size = UDim2.new(1, -16, 0, 20)
+MaterialLabel.Position = UDim2.new(0, 8, 0, 112)
+MaterialLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MaterialLabel.Text = "Material: Plastic 変更"
+MaterialLabel.TextColor3 = Color3.new(1, 1, 1)
+MaterialLabel.Font = Enum.Font.Gotham
+MaterialLabel.TextSize = 11
+MaterialLabel.Parent = Main
 
-	if _G.G_RemoveLava then
-		fn14()
-	end
+local MaterialLabelCorner = Instance.new("UICorner")
+MaterialLabelCorner.CornerRadius = UDim.new(0, 4)
+MaterialLabelCorner.Parent = MaterialLabel
+
+local MaterialToggle = Instance.new("TextButton")
+MaterialToggle.Size = UDim2.new(1, -16, 0, 32)
+MaterialToggle.Position = UDim2.new(0, 8, 0, 138)
+MaterialToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+MaterialToggle.Text = "Plastic 変更: OFF"
+MaterialToggle.TextColor3 = Color3.new(1, 1, 1)
+MaterialToggle.Font = Enum.Font.GothamBold
+MaterialToggle.TextSize = 13
+MaterialToggle.Parent = Main
+
+local MaterialToggleCorner = Instance.new("UICorner")
+MaterialToggleCorner.CornerRadius = UDim.new(0, 6)
+MaterialToggleCorner.Parent = MaterialToggle
+
+MaterialToggle.MouseButton1Click:Connect(function()
+	_G.GraphicsLevel_Material = not _G.GraphicsLevel_Material
+	MaterialToggle.Text = _G.GraphicsLevel_Material and "Plastic 変更: ON" or "Plastic 変更: OFF"
+	MaterialToggle.BackgroundColor3 = _G.GraphicsLevel_Material and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
+	fn18()
+	print("[Graphics] Plastic 変更: " .. (_G.GraphicsLevel_Material and "有効" or "無効"))
 end)
 
-local WalkOnWaterToggle = Instance.new("TextButton")
-WalkOnWaterToggle.Size = UDim2.new(1, -16, 0, 35)
-WalkOnWaterToggle.Position = UDim2.new(0, 8, 0, 188)
-WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
-WalkOnWaterToggle.Text = "水上行走: ON"
-WalkOnWaterToggle.TextColor3 = Color3.new(1, 1, 1)
-WalkOnWaterToggle.Font = Enum.Font.GothamBold
-WalkOnWaterToggle.TextSize = 14
-WalkOnWaterToggle.Parent = Main
-
-local WalkOnWaterCorner = Instance.new("UICorner")
-WalkOnWaterCorner.CornerRadius = UDim.new(0, 6)
-WalkOnWaterCorner.Parent = WalkOnWaterToggle
-
-WalkOnWaterToggle.MouseButton1Click:Connect(function()
-	if _G.G_WalkOnWater then
-		_G.G_WalkOnWater = false
-		WalkOnWaterToggle.Text = "水上行走: OFF"
-		WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
-		fn16()
-	else
-		_G.G_WalkOnWater = true
-		WalkOnWaterToggle.Text = "水上行走: ON"
-		WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
-		fn15()
-	end
-end)
-
--- 説明
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Size = UDim2.new(1, -16, 0, 60)
-InfoLabel.Position = UDim2.new(0, 8, 0, 228)
-InfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-InfoLabel.Text = "【Level 説明】\n0-30: 最軽量（見えない）\n30-60: 軽量（見える最小）\n60-100: 通常画質"
-InfoLabel.TextColor3 = Color3.new(1, 1, 1)
-InfoLabel.Font = Enum.Font.Gotham
-InfoLabel.TextSize = 9
-InfoLabel.TextWrapped = true
-InfoLabel.Parent = Main
-
-local InfoCorner = Instance.new("UICorner")
-InfoCorner.CornerRadius = UDim.new(0, 4)
-InfoCorner.Parent = InfoLabel
-
+-- ============================================================
 -- リセット
+-- ============================================================
+
 local ResetButton = Instance.new("TextButton")
-ResetButton.Size = UDim2.new(1, -16, 0, 32)
-ResetButton.Position = UDim2.new(0, 8, 0, 294)
+ResetButton.Size = UDim2.new(1, -16, 0, 35)
+ResetButton.Position = UDim2.new(0, 8, 0, 180)
 ResetButton.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
-ResetButton.Text = "リセット (Level 30)"
+ResetButton.Text = "リセット (全部 OFF)"
 ResetButton.TextColor3 = Color3.new(1, 1, 1)
 ResetButton.Font = Enum.Font.GothamBold
 ResetButton.TextSize = 13
@@ -490,31 +367,44 @@ ResetCorner.CornerRadius = UDim.new(0, 6)
 ResetCorner.Parent = ResetButton
 
 ResetButton.MouseButton1Click:Connect(function()
-	_G.GraphicsLevel = 30
-	_G.G_LowGraphics = true
-	_G.G_RemoveLava = true
-	_G.G_WalkOnWater = true
-
-	LowGraphicsToggle.Text = "画質低下: ON"
-	LowGraphicsToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
-	RemoveLavaToggle.Text = "溶岩除去: ON"
-	RemoveLavaToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
-	WalkOnWaterToggle.Text = "水上行走: ON"
-	WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
+	_G.GraphicsLevel_Transparency = 0
+	_G.GraphicsLevel_Reflectance = 0
+	_G.GraphicsLevel_Material = false
 	
-	updateLevel(30)
-	print("[Graphics] リセット完了（Level: 30）")
+	TransparencyEnabled = false
+	ReflectanceEnabled = false
+	
+	TransparencyToggle.Text = "OFF"
+	TransparencyToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	TransparencyTextBox.Visible = false
+	TransparencyTextBox.Text = "0"
+	TransparencyLabel.Text = "Transparency: 0/10"
+	
+	ReflectanceToggle.Text = "OFF"
+	ReflectanceToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	ReflectanceTextBox.Visible = false
+	ReflectanceTextBox.Text = "0"
+	ReflectanceLabel.Text = "Reflectance (光沢): 0/10"
+	
+	MaterialToggle.Text = "Plastic 変更: OFF"
+	MaterialToggle.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+	
+	fn18()
+	print("[Graphics] リセット完了（すべて OFF）")
 end)
 
+-- ============================================================
 -- Status
+-- ============================================================
+
 local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, -16, 0, 50)
-StatusLabel.Position = UDim2.new(0, 8, 0, 332)
+StatusLabel.Size = UDim2.new(1, -16, 0, 90)
+StatusLabel.Position = UDim2.new(0, 8, 0, 225)
 StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-StatusLabel.Text = "現在の設定:\n画質低下: 有効\nLevel: 30/100"
+StatusLabel.Text = "【説明】\nTransparency: 0-10で透明度\nReflectance: 0-10で光沢削除\nMaterial: Plastic 化\n\n初期状態: すべて OFF"
 StatusLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
 StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 10
+StatusLabel.TextSize = 9
 StatusLabel.TextWrapped = true
 StatusLabel.Parent = Main
 
@@ -523,5 +413,5 @@ StatusCorner.CornerRadius = UDim.new(0, 4)
 StatusCorner.Parent = StatusLabel
 
 print("[Graphics] GUI 読み込み完了")
-print("[Graphics] 数値を 0-100 の範囲で変更可能です")
-print("[Graphics] 推奨: 20-40 程度が軽量＆見えるバランス")
+print("[Graphics] 初期状態: すべて OFF")
+print("[Graphics] 0〜10で調整可能")
