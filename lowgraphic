@@ -1,5 +1,5 @@
 -- ============================================================
--- Graphics Reduction GUI（リアルタイム軽減度調整版）
+-- Graphics Reduction GUI（スマホ対応・テキスト入力版）
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -7,12 +7,12 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 _G.G_LowGraphics = true
-_G.GraphicsLevel = 100  -- 0（最軽量）〜 100（デフォルト）
+_G.GraphicsLevel = 30  -- 0（最軽量）〜 100（デフォルト）
 _G.G_RemoveLava = true
 _G.G_WalkOnWater = true
 
 -- ============================================================
--- Graphics 関数群
+-- Graphics 関数群（修正版）
 -- ============================================================
 
 local function fn17(arg)
@@ -23,19 +23,27 @@ local function fn17(arg)
 		arg.Reflectance = 0.5 * level
 		arg.Transparency = 1 - (0.95 * level)
 		if level < 0.3 then
-			arg.CanCollide = false
+			pcall(function()
+				arg.CanCollide = false
+			end)
 		end
 	elseif arg:IsA("Decal") or arg:IsA("Texture") then
 		arg.Transparency = 1 - (0.9 * level)
 	elseif arg:IsA("ParticleEmitter") or arg:IsA("Trail") then
 		arg.Lifetime = NumberRange.new(5 * level)
 		if level < 0.5 then
-			arg.Enabled = false
+			pcall(function()
+				arg.Enabled = false
+			end)
 		end
 	elseif arg:IsA("Explosion") then
-		arg.BlastPressure = 500 * level
-		arg.BlastRadius = 80 * level
+		pcall(function()
+			arg.BlastPressure = 500 * level
+			arg.BlastRadius = 80 * level
+		end)
 	elseif arg:IsA("Fire") or arg:IsA("SpotLight") or arg:IsA("Smoke") then
+		arg.Enabled = level > 0.3
+	elseif arg:IsA("SurfaceGui") or arg:IsA("BillboardGui") then
 		arg.Enabled = level > 0.3
 	end
 end
@@ -44,9 +52,25 @@ local function fn18()
 	task.spawn(function()
 		pcall(function()
 			local n = 0
+			local Workspace = game:GetService("Workspace")
+			local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-			for _, descendant in pairs(game:GetDescendants()) do
-				fn17(descendant)
+			for _, descendant in pairs(Workspace:GetDescendants()) do
+				pcall(function()
+					fn17(descendant)
+				end)
+				n += 1
+
+				if n % 500 == 0 then
+					task.wait()
+				end
+			end
+
+			n = 0
+			for _, descendant in pairs(ReplicatedStorage:GetDescendants()) do
+				pcall(function()
+					fn17(descendant)
+				end)
 				n += 1
 
 				if n % 500 == 0 then
@@ -92,8 +116,10 @@ local function fn14()
 	task.spawn(function()
 		pcall(function()
 			local n = 0
+			local Workspace = game:GetService("Workspace")
+			local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-			for _, descendant in pairs(game:GetService("Workspace"):GetDescendants()) do
+			for _, descendant in pairs(Workspace:GetDescendants()) do
 				fn13(descendant)
 				n += 1
 
@@ -102,7 +128,8 @@ local function fn14()
 				end
 			end
 
-			for _, descendant in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+			n = 0
+			for _, descendant in pairs(ReplicatedStorage:GetDescendants()) do
 				fn13(descendant)
 				n += 1
 
@@ -164,7 +191,9 @@ fn15()
 
 game:GetService("Workspace").DescendantAdded:Connect(function(descendant)
 	if _G.G_LowGraphics then
-		pcall(fn17, descendant)
+		pcall(function()
+			fn17(descendant)
+		end)
 	end
 end)
 
@@ -179,7 +208,7 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 300, 0, 420)
+Main.Size = UDim2.new(0, 300, 0, 450)
 Main.Position = UDim2.new(0.02, 0, 0.3, 0)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
@@ -255,14 +284,14 @@ CloseButton.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================================
--- Level 表示
+-- Level テキスト入力
 -- ============================================================
 
 local LevelLabel = Instance.new("TextLabel")
 LevelLabel.Size = UDim2.new(1, -16, 0, 20)
 LevelLabel.Position = UDim2.new(0, 8, 0, 38)
 LevelLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-LevelLabel.Text = "Graphics Level: " .. _G.GraphicsLevel .. "/100"
+LevelLabel.Text = "Graphics Level:"
 LevelLabel.TextColor3 = Color3.new(1, 1, 1)
 LevelLabel.Font = Enum.Font.Gotham
 LevelLabel.TextSize = 11
@@ -272,65 +301,79 @@ local LevelLabelCorner = Instance.new("UICorner")
 LevelLabelCorner.CornerRadius = UDim.new(0, 4)
 LevelLabelCorner.Parent = LevelLabel
 
--- レベル調整スライダー
-local LevelBar = Instance.new("Frame")
-LevelBar.Size = UDim2.new(1, -16, 0, 8)
-LevelBar.Position = UDim2.new(0, 8, 0, 64)
-LevelBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-LevelBar.BorderSizePixel = 0
-LevelBar.Parent = Main
+local LevelTextBox = Instance.new("TextBox")
+LevelTextBox.Size = UDim2.new(1, -16, 0, 32)
+LevelTextBox.Position = UDim2.new(0, 8, 0, 64)
+LevelTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+LevelTextBox.TextColor3 = Color3.new(1, 1, 1)
+LevelTextBox.Font = Enum.Font.GothamBold
+LevelTextBox.TextSize = 16
+LevelTextBox.Text = tostring(_G.GraphicsLevel)
+LevelTextBox.PlaceholderText = "0-100"
+LevelTextBox.ClearTextOnFocus = false
+LevelTextBox.Parent = Main
 
-local LevelBarCorner = Instance.new("UICorner")
-LevelBarCorner.CornerRadius = UDim.new(0, 4)
-LevelBarCorner.Parent = LevelBar
-
-local LevelFill = Instance.new("Frame")
-LevelFill.Size = UDim2.new(_G.GraphicsLevel / 100, 0, 1, 0)
-LevelFill.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
-LevelFill.BorderSizePixel = 0
-LevelFill.Parent = LevelBar
-
-local LevelFillCorner = Instance.new("UICorner")
-LevelFillCorner.CornerRadius = UDim.new(0, 4)
-LevelFillCorner.Parent = LevelFill
+local LevelTextBoxCorner = Instance.new("UICorner")
+LevelTextBoxCorner.CornerRadius = UDim.new(0, 6)
+LevelTextBoxCorner.Parent = LevelTextBox
 
 local function updateLevel(newLevel)
-	_G.GraphicsLevel = math.clamp(newLevel, 0, 100)
-	LevelLabel.Text = "Graphics Level: " .. _G.GraphicsLevel .. "/100"
-	LevelFill.Size = UDim2.new(_G.GraphicsLevel / 100, 0, 1, 0)
+	_G.GraphicsLevel = math.clamp(tonumber(newLevel) or 30, 0, 100)
+	LevelTextBox.Text = tostring(_G.GraphicsLevel)
 
-	for _, descendant in ipairs(game:GetDescendants()) do
-		pcall(function()
-			fn17(descendant)
-		end)
-	end
+	task.spawn(function()
+		fn18()
+	end)
 end
 
-local draggingLevel = false
-LevelBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		draggingLevel = true
+LevelTextBox.FocusLost:Connect(function(enterPressed)
+	local val = tonumber(LevelTextBox.Text)
+	if val then
+		updateLevel(val)
+		print("[Graphics] Level 変更: " .. _G.GraphicsLevel)
+	else
+		LevelTextBox.Text = tostring(_G.GraphicsLevel)
 	end
 end)
 
-LevelBar.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		draggingLevel = false
-	end
+-- ============================================================
+-- +/- ボタン
+-- ============================================================
+
+local PlusButton = Instance.new("TextButton")
+PlusButton.Size = UDim2.new(0.48, 0, 0, 32)
+PlusButton.Position = UDim2.new(0.04, 0, 0.11, 0)
+PlusButton.BackgroundColor3 = Color3.fromRGB(90, 180, 90)
+PlusButton.Text = "+ (10)"
+PlusButton.TextColor3 = Color3.new(1, 1, 1)
+PlusButton.Font = Enum.Font.GothamBold
+PlusButton.TextSize = 12
+PlusButton.Parent = Main
+
+local PlusCorner = Instance.new("UICorner")
+PlusCorner.CornerRadius = UDim.new(0, 6)
+PlusCorner.Parent = PlusButton
+
+PlusButton.MouseButton1Click:Connect(function()
+	updateLevel(_G.GraphicsLevel + 10)
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-	if draggingLevel and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-		local mouse = game:GetService("Mouse")
-		local sliderPos = LevelBar.AbsolutePosition.X
-		local sliderSize = LevelBar.AbsoluteSize.X
-		local mouseX = mouse.X
+local MinusButton = Instance.new("TextButton")
+MinusButton.Size = UDim2.new(0.48, 0, 0, 32)
+MinusButton.Position = UDim2.new(0.52, 0, 0.11, 0)
+MinusButton.BackgroundColor3 = Color3.fromRGB(180, 90, 90)
+MinusButton.Text = "- (10)"
+MinusButton.TextColor3 = Color3.new(1, 1, 1)
+MinusButton.Font = Enum.Font.GothamBold
+MinusButton.TextSize = 12
+MinusButton.Parent = Main
 
-		if mouseX >= sliderPos and mouseX <= sliderPos + sliderSize then
-			local percent = (mouseX - sliderPos) / sliderSize
-			updateLevel(percent * 100)
-		end
-	end
+local MinusCorner = Instance.new("UICorner")
+MinusCorner.CornerRadius = UDim.new(0, 6)
+MinusCorner.Parent = MinusButton
+
+MinusButton.MouseButton1Click:Connect(function()
+	updateLevel(_G.GraphicsLevel - 10)
 end)
 
 -- ============================================================
@@ -339,7 +382,7 @@ end)
 
 local LowGraphicsToggle = Instance.new("TextButton")
 LowGraphicsToggle.Size = UDim2.new(1, -16, 0, 35)
-LowGraphicsToggle.Position = UDim2.new(0, 8, 0, 90)
+LowGraphicsToggle.Position = UDim2.new(0, 8, 0, 108)
 LowGraphicsToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
 LowGraphicsToggle.Text = "画質低下: ON"
 LowGraphicsToggle.TextColor3 = Color3.new(1, 1, 1)
@@ -365,7 +408,7 @@ end)
 
 local RemoveLavaToggle = Instance.new("TextButton")
 RemoveLavaToggle.Size = UDim2.new(1, -16, 0, 35)
-RemoveLavaToggle.Position = UDim2.new(0, 8, 0, 130)
+RemoveLavaToggle.Position = UDim2.new(0, 8, 0, 148)
 RemoveLavaToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
 RemoveLavaToggle.Text = "溶岩除去: ON"
 RemoveLavaToggle.TextColor3 = Color3.new(1, 1, 1)
@@ -381,7 +424,7 @@ RemoveLavaToggle.MouseButton1Click:Connect(function()
 	_G.G_RemoveLava = not _G.G_RemoveLava
 	RemoveLavaToggle.Text = _G.G_RemoveLava and "溶岩除去: ON" or "溶岩除去: OFF"
 	RemoveLavaToggle.BackgroundColor3 = _G.G_RemoveLava and Color3.fromRGB(0, 140, 60) or Color3.fromRGB(140, 40, 40)
-	
+
 	if _G.G_RemoveLava then
 		fn14()
 	end
@@ -389,7 +432,7 @@ end)
 
 local WalkOnWaterToggle = Instance.new("TextButton")
 WalkOnWaterToggle.Size = UDim2.new(1, -16, 0, 35)
-WalkOnWaterToggle.Position = UDim2.new(0, 8, 0, 170)
+WalkOnWaterToggle.Position = UDim2.new(0, 8, 0, 188)
 WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
 WalkOnWaterToggle.Text = "水上行走: ON"
 WalkOnWaterToggle.TextColor3 = Color3.new(1, 1, 1)
@@ -415,15 +458,31 @@ WalkOnWaterToggle.MouseButton1Click:Connect(function()
 	end
 end)
 
+-- 説明
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(1, -16, 0, 60)
+InfoLabel.Position = UDim2.new(0, 8, 0, 228)
+InfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+InfoLabel.Text = "【Level 説明】\n0-30: 最軽量（見えない）\n30-60: 軽量（見える最小）\n60-100: 通常画質"
+InfoLabel.TextColor3 = Color3.new(1, 1, 1)
+InfoLabel.Font = Enum.Font.Gotham
+InfoLabel.TextSize = 9
+InfoLabel.TextWrapped = true
+InfoLabel.Parent = Main
+
+local InfoCorner = Instance.new("UICorner")
+InfoCorner.CornerRadius = UDim.new(0, 4)
+InfoCorner.Parent = InfoLabel
+
 -- リセット
 local ResetButton = Instance.new("TextButton")
 ResetButton.Size = UDim2.new(1, -16, 0, 32)
-ResetButton.Position = UDim2.new(0, 8, 0, 214)
+ResetButton.Position = UDim2.new(0, 8, 0, 294)
 ResetButton.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
-ResetButton.Text = "リセット"
+ResetButton.Text = "リセット (Level 30)"
 ResetButton.TextColor3 = Color3.new(1, 1, 1)
 ResetButton.Font = Enum.Font.GothamBold
-ResetButton.TextSize = 14
+ResetButton.TextSize = 13
 ResetButton.Parent = Main
 
 local ResetCorner = Instance.new("UICorner")
@@ -431,19 +490,38 @@ ResetCorner.CornerRadius = UDim.new(0, 6)
 ResetCorner.Parent = ResetButton
 
 ResetButton.MouseButton1Click:Connect(function()
-	_G.GraphicsLevel = 100
+	_G.GraphicsLevel = 30
 	_G.G_LowGraphics = true
 	_G.G_RemoveLava = true
 	_G.G_WalkOnWater = true
-	
+
 	LowGraphicsToggle.Text = "画質低下: ON"
 	LowGraphicsToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
 	RemoveLavaToggle.Text = "溶岩除去: ON"
 	RemoveLavaToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
 	WalkOnWaterToggle.Text = "水上行走: ON"
 	WalkOnWaterToggle.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
-	updateLevel(100)
+	
+	updateLevel(30)
+	print("[Graphics] リセット完了（Level: 30）")
 end)
 
+-- Status
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -16, 0, 50)
+StatusLabel.Position = UDim2.new(0, 8, 0, 332)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+StatusLabel.Text = "現在の設定:\n画質低下: 有効\nLevel: 30/100"
+StatusLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 10
+StatusLabel.TextWrapped = true
+StatusLabel.Parent = Main
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 4)
+StatusCorner.Parent = StatusLabel
+
 print("[Graphics] GUI 読み込み完了")
-print("[Graphics] Level 0〜100 でリアルタイム調整が可能です")
+print("[Graphics] 数値を 0-100 の範囲で変更可能です")
+print("[Graphics] 推奨: 20-40 程度が軽量＆見えるバランス")
